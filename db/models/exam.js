@@ -48,6 +48,10 @@ module.exports = (sequelize) =>{
             type: DataTypes.INTEGER,
             allowNull:true,
         },
+        Data:{
+            type: DataTypes.JSON,
+            allowNull: true
+        },
         Deleted:{
             type: DataTypes.BOOLEAN,
             allowNull:false,

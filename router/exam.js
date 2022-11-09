@@ -5,20 +5,20 @@ const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component')
 
-const ElementFirstType={
+const ElementFirstType = {
     SizedElement: 0,
     GeometricalTolerance: 1,
     SurfaceRoughness: 2,
     Other: 3
 }
- const SizedElementSubType={
+const SizedElementSubType = {
     Line: 0,
     Diameter: 1,
     Radial: 2,
     Angle: 3
 }
- const SizedElementSymbol = ['L','D','R', '∠'];
- const GelToleranceSymbol = ['u','c','e','g','k','d','f','b','a','r','i','j','h','t'];
+const SizedElementSymbol = ['L', 'D', 'R', '∠'];
+const GelToleranceSymbol = ['u', 'c', 'e', 'g', 'k', 'd', 'f', 'b', 'a', 'r', 'i', 'j', 'h', 't'];
 
 /**
  * 获取考核列表
@@ -102,8 +102,33 @@ router.post('/', async (req, res, next) => {
         next(err)
     }
 });
-router.get('/:id', (req, res) => {
-    res.send('考卷评分详情');
+/**
+ * 按id查询exam，其他精确的get方法的请求请放在这个之前
+ */
+router.get('/:Id', async (req, res, next) => {
+    try {
+
+        const Id = Number.parseInt(req.params.Id);
+        if(Id === NaN){
+            const result = {
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: '无效的考核Id',
+                data: null,
+            }
+            return res.status(200).json(result);
+        }
+        
+        const exam = await models.Exam.findByPk(Id);
+       
+        const result = {
+            code: ErrCode.SUCCESS,
+            msg: 'success',
+            data: exam?.toJSON()
+        }
+        return res.status(200).json(result);
+    } catch (err) {
+        next(err)
+    }
 });
 router.get('/:id/result', (req, res) => {
     res.send('考核结果');
@@ -138,7 +163,7 @@ router.post('/criteria', async (req, res, next) => {
         console.log(`examID:${examId}, CriteriaId: ${CriteriaId}`)
         await exam.update({ CriteriaId: CriteriaId });
         const result = await getComponentCriteria(exam.ExamComponent);
-        const { SizedElement, GeoElement,SurfaceRoughnessDesc, OtherDesc } = req.body;
+        const { SizedElement, GeoElement, SurfaceRoughnessDesc, OtherDesc } = req.body;
         SizedElement.map(async item => {
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
@@ -148,7 +173,7 @@ router.post('/criteria', async (req, res, next) => {
                 SizeDeductScore: item.SizeDeductScore
             })
         })
-        GeoElement.map(async item=>{
+        GeoElement.map(async item => {
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
                 FirstType: ElementFirstType.GeometricalTolerance,
@@ -158,23 +183,51 @@ router.post('/criteria', async (req, res, next) => {
                 GeoDeductScore: item.GeoDeductScore
             })
         })
-        if (SurfaceRoughnessDesc){
+        if (SurfaceRoughnessDesc) {
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
                 FirstType: ElementFirstType.SurfaceRoughness,
-                SurfaceRoughnessDesc:SurfaceRoughnessDesc
+                SurfaceRoughnessDesc: SurfaceRoughnessDesc
             })
         }
         await models.ExamCriteria.create({
             CriteriaId: CriteriaId,
             FirstType: ElementFirstType.Other,
-            OtherDesc:OtherDesc
+            OtherDesc: OtherDesc
         })
 
         const ret = {
             code: ErrCode.SUCCESS,
             msg: `success`,
             data: null
+        }
+        return res.status(200).json(ret);
+    }
+    catch (err) {
+        next(err)
+    }
+})
+/**
+ * 保存每个尺寸的配分
+ */
+router.post('/scores', async (req, res, next) => {
+    try {
+        const examId = Number.parseInt(req.query.ExamId);
+        const exam = await models.Exam.findByPk(examId);
+        if (!exam) {
+            const result = {
+                code: ErrCode.ERR_NOT_FOUND,
+                msg: `未找到id为${examId}的考核`,
+                data: null
+            }
+            return res.status(404).json(result);
+        }
+        const { scores } = req.body;
+        await exam.update({ Data: { "scores": scores } });
+        const ret = {
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: exam.toJSON()
         }
         return res.status(200).json(ret);
     }
