@@ -19,7 +19,11 @@ const SizedElementSubType = {
 }
 const SizedElementSymbol = ['L', 'D', 'R', '∠'];
 const GelToleranceSymbol = ['u', 'c', 'e', 'g', 'k', 'd', 'f', 'b', 'a', 'r', 'i', 'j', 'h', 't'];
-
+const ExamStatus = new Map([
+    [1, '初始化'],
+    [2, '已下发'],
+    [3, '已收卷']
+])
 /**
  * 获取考核列表
  */
@@ -28,9 +32,13 @@ router.get('/', async (req, res, next) => {
         const page = Number.parseInt(req.query.page);
         const limit = Number.parseInt(req.query.limit);
         const ExamComponent = Number.parseInt(req.query.ExamComponent);
+        const Status = req.query.Status;
         let condition = { Deleted: false }
         if (ExamComponent !== 0) {
-            condition = { ExamComponent: ExamComponent, ...ExamComponent }
+            condition = { ExamComponent: ExamComponent, ...condition }
+        }
+        if (Status){
+            condition = {Status: Status, ...condition}
         }
         const exams = await models.Exam.findAll({
             order: [["Id", "DESC"]],
@@ -49,7 +57,7 @@ router.get('/', async (req, res, next) => {
         }
         return res.status(200).json(result);
     } catch (err) {
-        next(err)
+        // next(err)
     }
 });
 /***
@@ -102,6 +110,27 @@ router.post('/', async (req, res, next) => {
         next(err)
     }
 });
+
+router.get('/criteria', async (req, res, next)=>{
+    const CriteriaId = Number.parseInt(req.query.CriteriaId);
+    if(isNaN(CriteriaId)){
+        result = {
+            code: ErrCode.ERR_INVALID_PARAMS,
+            msg: `参数 CriteriaId 无效`,
+            data: null
+        }
+        return res.json(result);
+    }
+    const criterias = await models.ExamCriteria.findAll({
+        where: {CriteriaId: CriteriaId}
+    });
+    result = {
+        code: 0,
+        msg:`success`,
+        data: criterias.map(criteria=> criteria.toJSON())
+    }
+    return res.json(result);
+})
 /**
  * 按id查询exam，其他精确的get方法的请求请放在这个之前
  */
@@ -109,7 +138,7 @@ router.get('/:Id', async (req, res, next) => {
     try {
 
         const Id = Number.parseInt(req.params.Id);
-        if(Id === NaN){
+        if(isNaN(Id)){
             const result = {
                 code: ErrCode.ERR_INVALID_PARAMS,
                 msg: '无效的考核Id',
@@ -130,6 +159,42 @@ router.get('/:Id', async (req, res, next) => {
         next(err)
     }
 });
+
+router.patch('/:Id', async(req, res, next)=>{
+    try {
+        const ExamId = Number.parseInt(req.params.Id);
+        if (ExamId === NaN){
+            return res.status(200).json({
+                code: ErrCode.ERR_INVALID_PARAMS, 
+                msg:`无效的考核Id:${req.params.Id}`,
+                data:null
+                });
+        }
+        const exam = await models.Exam.findByPk(ExamId);
+        if (!exam){
+            return res.status(200).json({
+                code: ErrCode.ERR_INVALID_PARAMS, 
+                msg:`未找到考核:${req.params.Id}，请确认。`, 
+                data:null});
+        }
+        const {Status} = req.body;
+        if (![0,1,2].includes(Number.parseInt(Status))){
+            return res.status(200).json({
+                code: ErrCode.ERR_INVALID_PARAMS, 
+                msg:`无效的状态枚举值: ${Status}`, 
+                data:null});
+        }
+        await exam.update({Status:Status});
+        return res.status(200).json({
+            code: ErrCode.SUCCESS, 
+            msg:`success`, 
+            data:exam.toJSON()});
+        
+    } catch (err) {
+        next(err)
+    }
+})
+
 router.get('/:id/result', (req, res) => {
     res.send('考核结果');
 });

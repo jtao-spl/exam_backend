@@ -139,7 +139,7 @@ router.get('/count', async (req, res, next) => {
             Deleted: false
         }
     });
-    res.status(200).json({
+    return res.status(200).json({
         code: 0,
         msg: "success",
         data: { count: count }

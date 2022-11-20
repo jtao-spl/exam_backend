@@ -4,8 +4,8 @@ const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const fs = require('fs');
 const multer = require('multer');
-const upload = multer({dest:'../images/'});
-const {getComponentCriteria} = require('../service/component');
+const upload = multer({ dest: '../images/' });
+const { getComponentCriteria } = require('../service/component');
 
 
 //获取零件列表
@@ -16,17 +16,17 @@ router.get('/', async (req, res, next) => {
         const limit = Number.parseInt(req.query.limit);
         // console.log(`查询组件列表: page=${page}, limit=${limit}`);
         const components = await models.Component.findAll({
-            order:[["Id","DESC"]],
-            offset: page>0? (page-1) * limit: 0,
-            limit:limit,
-            where:{Deleted:false}
+            order: [["Id", "DESC"]],
+            offset: page > 0 ? (page - 1) * limit : 0,
+            limit: limit,
+            where: { Deleted: false }
         });
         const total = await models.Component.count();
         // res.send(`获取零件列表, ${JSON.stringify(components)}` );
         const result = {
             code: ErrCode.SUCCESS,
-            msg:'success',
-            data:components.map(component => component.toJSON()),
+            msg: 'success',
+            data: components.map(component => component.toJSON()),
             page: page,
             limit: Math.min(limit, components.length),
             total: total,
@@ -45,25 +45,29 @@ router.post('/', async (req, res, next) => {
         next(err)
     }
 });
-router.get('/count', async (req, res, next)=>{
-    const count = await models.Component.count({
-        where: {
-            Deleted: false
-        }
-    });
-    res.status(200).json({
-        code: 0,
-        msg: "success",
-        data: {count: count}
-    })
+router.get('/count', async (req, res, next) => {
+    try {
+        const count = await models.Component.count({
+            where: {
+                Deleted: false
+            }
+        });
+        return res.status(200).json({
+            code: 0,
+            msg: "success",
+            data: { count: count }
+        })
+    } catch (err) {
+        next(err)
+    }
 })
 
-router.get('/creterials', async(req, res,next)=>{
+router.get('/creterials', async (req, res, next) => {
     try {
         const id = Number.parseInt(req.query.ComponentId);
-        if(id === 0){
+        if (id === 0) {
             result = {
-                code:0,
+                code: 0,
                 msg: 'success',
                 data: null
             }
@@ -72,7 +76,7 @@ router.get('/creterials', async(req, res,next)=>{
 
         const m = await getComponentCriteria(id)
         result = {
-            code:0,
+            code: 0,
             msg: 'success',
             data: m
         }
@@ -89,16 +93,16 @@ router.get('/:id', async (req, res, next) => {
         const component = await models.Component.findByPk(id);
         if (!component) {
             const result = {
-                code:ErrCode.ERR_NOT_FOUND,
+                code: ErrCode.ERR_NOT_FOUND,
                 msg: `未找到id为${id}的组件`,
-                data:null
+                data: null
             }
             return res.status(404).json(result);
         }
         const result = {
-            code:ErrCode.SUCCESS,
+            code: ErrCode.SUCCESS,
             msg: `success`,
-            data:component.toJSON()
+            data: component.toJSON()
         }
         return res.status(200).json(result);
     } catch (err) {
@@ -112,17 +116,17 @@ router.post('/:id', async (req, res, next) => {
         const component = await models.Component.findByPk(id);
         if (!component) {
             const result = {
-                code:ErrCode.ERR_NOT_FOUND,
+                code: ErrCode.ERR_NOT_FOUND,
                 msg: `未找到id为${id}的组件`,
-                data:null
+                data: null
             }
             return res.status(404).json(result);
         }
         await component.update(req.body);
         const result = {
-            code:ErrCode.SUCCESS,
+            code: ErrCode.SUCCESS,
             msg: `success`,
-            data:component.toJSON()
+            data: component.toJSON()
         }
         return res.status(200).json(result);
     } catch (err) {
@@ -136,23 +140,23 @@ router.post('/:id/download', async (req, res, next) => {
         const component = await models.Component.findByPk(id);
         if (!component) {
             const result = {
-                code:ErrCode.ERR_NOT_FOUND,
+                code: ErrCode.ERR_NOT_FOUND,
                 msg: `未找到id为${id}的组件`,
-                data:null
+                data: null
             }
             return res.status(404).json(result);
         }
         const result = {
-            code:ErrCode.SUCCESS,
+            code: ErrCode.SUCCESS,
             msg: `success`,
-            data:component.name
+            data: component.name
         }
         return res.status(200).json(result);
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 });
-router.post('/:id/clip/upload', upload.single('file'), async (req, res, next)=>{
+router.post('/:id/clip/upload', upload.single('file'), async (req, res, next) => {
     try {
         if (!req.file) {
             return res.send({
@@ -171,9 +175,9 @@ router.post('/:id/clip/upload', upload.single('file'), async (req, res, next)=>{
         const component = await models.Component.findByPk(id);
         if (!component) {
             const result = {
-                code:ErrCode.ERR_NOT_FOUND,
+                code: ErrCode.ERR_NOT_FOUND,
                 msg: `未找到id为${id}的组件`,
-                data:null
+                data: null
             }
             return res.status(404).json(result);
         }
@@ -186,41 +190,42 @@ router.post('/:id/clip/upload', upload.single('file'), async (req, res, next)=>{
             msg: 'success',
             data: component.toJSON()
         }
+        return res.status(200).json(result);
     }
-    catch(err){
+    catch (err) {
         next(err)
     }
-    
+
 })
 
 
-router.delete('/:id', async(req, res,next)=>{
+router.delete('/:id', async (req, res, next) => {
     try {
         const id = Number.parseInt(req.params.id);
         const component = await models.Component.findByPk(id);
         if (!component) {
             const result = {
-                code:ErrCode.ERR_NOT_FOUND,
+                code: ErrCode.ERR_NOT_FOUND,
                 msg: `未找到id为${id}的组件`,
-                data:null
+                data: null
             }
             return res.status(404).json(result);
         }
-        await component.update({Deleted: true});
+        await component.update({ Deleted: true });
         const componentSizes = await models.ComponentSize.findAll({
-            where:{
+            where: {
                 ComponentId: id,
                 Deleted: false
             }
         });
-        componentSizes.map( async size=>{await size.update({Deleted: true})})
+        componentSizes.map(async size => { await size.update({ Deleted: true }) })
         const result = {
-            code:ErrCode.SUCCESS,
+            code: ErrCode.SUCCESS,
             msg: `success`,
             data: null
         }
         return res.status(200).json(result);
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 })

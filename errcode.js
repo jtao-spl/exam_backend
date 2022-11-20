@@ -16,6 +16,9 @@ const ErrCode = new Enum(
     "ERR_NOT_FOUND",
     "ERR_INCONSISTENT",
     "ERR_INVALID_PARAMS",
+    "ERR_UNAUTHENTICATED",
+    "ERR_BAD_CREDENTIAL",
+
 )
 
 module.exports = ErrCode
