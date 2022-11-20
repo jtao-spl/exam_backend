@@ -46,7 +46,13 @@ module.exports = (sequelize) =>{
         },
         CriteriaId:{
             type: DataTypes.INTEGER,
-            allowNull:true,
+            allowNull:false,
+            defaultValue: -1,
+        },
+        Status: {
+            type: DataTypes.TINYINT,
+            allowNull: false,
+            defaultValue: 0,
         },
         Data:{
             type: DataTypes.JSON,

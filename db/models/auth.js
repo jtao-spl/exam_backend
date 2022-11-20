@@ -19,6 +19,16 @@ module.exports = (sequelize) =>{
             allowNull: false,
             defaultValue: '',
         },
+        Role:{
+            type: DataTypes.TINYINT,
+            allowNull: false,
+            defaultValue: 3
+        },
+        Status:{
+            type: DataTypes.TINYINT,
+            allowNull: false,
+            defaultValue: 0
+        },
         Deleted:{
             type: DataTypes.BOOLEAN,
             allowNull: false,
