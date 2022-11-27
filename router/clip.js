@@ -36,7 +36,8 @@ router.post('/:id/upload', upload.single('file'), async (req, res, next)=>{
         }
         const imageUrl = '/images/' + file.originalname
         await component.update({
-            ClipPath: imageUrl
+            ClipPath: imageUrl,
+            Status: 3
         })
         result = {
             code: ErrCode.SUCCESS,

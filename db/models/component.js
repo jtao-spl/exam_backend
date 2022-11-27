@@ -20,7 +20,7 @@ module.exports = (sequelize) =>{
             defaultValue: '',
         },
         Status:{
-            type: DataTypes.BOOLEAN,
+            type: DataTypes.NUMBER,
             allowNull: false,
             defaultValue: 1,
         },

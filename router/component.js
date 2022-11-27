@@ -109,7 +109,7 @@ router.get('/:id', async (req, res, next) => {
         next(err)
     }
 });
-router.post('/:id', async (req, res, next) => {
+router.patch('/:id', async (req, res, next) => {
     try {
         //路径中的参数通过req.params.xxx来获取,注意类型转换
         const id = Number.parseInt(req.params.id);
@@ -122,7 +122,7 @@ router.post('/:id', async (req, res, next) => {
             }
             return res.status(404).json(result);
         }
-        await component.update(req.body);
+        await component.update({...req.body});
         const result = {
             code: ErrCode.SUCCESS,
             msg: `success`,
