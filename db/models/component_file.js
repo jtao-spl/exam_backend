@@ -1,30 +1,30 @@
-const {Sequelize, DataTypes, Model} = require('sequelize');
-module.exports = (sequelize) =>{
-    class ComponentFile extends Model {}
+const { DataTypes, Model } = require('sequelize');
+module.exports = (sequelize) => {
+    class ComponentFile extends Model { }
     ComponentFile.init({
-        Id:{
+        Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        ComponentId:{
+        ComponentId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
         FileName: {
-            type:DataTypes.STRING(200),
+            type: DataTypes.STRING(200),
             allowNull: false,
             defaultValue: ''
         },
-        FileContent:{
+        FileContent: {
             type: DataTypes.BLOB,
 
         },
-    },{
-        sequelize, 
+    }, {
+        sequelize,
         modelName: "ComponentFile",
-        tableName:"t_component_file"
+        tableName: "t_component_file"
     })
 }

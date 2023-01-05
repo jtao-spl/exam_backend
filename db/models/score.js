@@ -1,41 +1,41 @@
-const { DataTypes, Model, NOW} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 
-module.exports = (sequelize) =>{
-    class Score extends Model {}
+module.exports = (sequelize) => {
+    class Score extends Model { }
     Score.init({
-        Id:{
+        Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        StudentId:{
+        StudentId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        ExamId:{
+        ExamId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        TotalScore:{
+        TotalScore: {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        
-        DetailScore:{
+
+        DetailScore: {
             type: DataTypes.JSON,
             allowNull: true
         },
-        Deleted:{
+        Deleted: {
             type: DataTypes.BOOLEAN,
-            allowNull:false,
+            allowNull: false,
             defaultValue: false
         }
-    },{
-        sequelize, 
-        modelName:"Score",
+    }, {
+        sequelize,
+        modelName: "Score",
         tableName: "t_score",
     })
 }

@@ -1,41 +1,41 @@
-const { DataTypes, Model} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 
-module.exports = (sequelize) =>{
-    class Auth extends Model {}
+module.exports = (sequelize) => {
+    class Auth extends Model { }
     Auth.init({
-        Id:{
-            type: DataTypes.INTEGER, 
+        Id: {
+            type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        Name:{
+        Name: {
             type: DataTypes.STRING(50),
             allowNull: false,
             defaultValue: '',
         },
-        Password:{
+        Password: {
             type: DataTypes.STRING(50),
             allowNull: false,
             defaultValue: '',
         },
-        Role:{
+        Role: {
             type: DataTypes.TINYINT,
             allowNull: false,
             defaultValue: 3
         },
-        Status:{
+        Status: {
             type: DataTypes.TINYINT,
             allowNull: false,
             defaultValue: 0
         },
-        Deleted:{
+        Deleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false,
         },
-    },{
-        sequelize, 
+    }, {
+        sequelize,
         tableName: "t_auth",
     })
 }

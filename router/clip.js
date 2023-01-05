@@ -48,5 +48,25 @@ router.post('/:id/upload', upload.single('file'), async (req, res, next)=>{
 
     }
 })
-
+router.post('/:id/download', async (req, res, next)=>{
+    const componentId = Number.parseInt(req.params.id);
+    if(isNaN(componentId)){
+        return res.status(200).json({code: ErrCode.ERR_INVALID_PARAMS, msg:`未识别的组件id:${req.params.id}`, data: null});
+    }
+    const component =  await models.Component.findByPk(componentId);
+    if(!component){
+        return res.status(200).json({code: ErrCode.ERR_INVALID_PARAMS, msg:`不存在组件 id:${req.params.id}`, data: null}); 
+    }
+    const filepath = path.resolve(path.join(__dirname, '../public' + component.ClipPath));
+    let exist = fs.existsSync(path)
+      if(exist) {
+        res.download(filepath)
+      } else {
+        res.send({
+          code: ErrCode.ERR_NOT_FOUND,
+          msg: 'File Not Exits',
+          data: null
+        })
+      }
+})
 module.exports = router

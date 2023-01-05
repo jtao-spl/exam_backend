@@ -1,59 +1,59 @@
-const {Sequelize, DataTypes, Model} = require('sequelize');
-module.exports = (sequelize) =>{
-    class ComponentSize extends Model {}
+const { DataTypes, Model } = require('sequelize');
+module.exports = (sequelize) => {
+    class ComponentSize extends Model { }
     ComponentSize.init({
-        Id:{
+        Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        ComponentId:{
+        ComponentId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        FirstType:{
+        FirstType: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        SecondType:{
+        SecondType: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
         },
-        BaseSize:{
-            type: DataTypes.DECIMAL(10,3)
+        BaseSize: {
+            type: DataTypes.DECIMAL(10, 3)
         },
-        UpSize:{
-            type: DataTypes.DECIMAL(4,3)
+        UpSize: {
+            type: DataTypes.DECIMAL(4, 3)
         },
-        BottomSize:{
-            type: DataTypes.DECIMAL(4,3)
+        BottomSize: {
+            type: DataTypes.DECIMAL(4, 3)
         },
-        GeoToleranceType:{
+        GeoToleranceType: {
             type: DataTypes.STRING(1),
         },
-        GeoToleranceVal:{
+        GeoToleranceVal: {
             type: DataTypes.STRING(10),
         },
-        SurfaceRoughnessType:{
+        SurfaceRoughnessType: {
             type: DataTypes.STRING(2),
         },
-        SurfaceRoughnessVal:{
+        SurfaceRoughnessVal: {
             type: DataTypes.STRING(10),
         },
         OtherRequirements: {
             type: DataTypes.STRING(500)
         },
-        Deleted:{
+        Deleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false,
         },
-    },{
-        sequelize, 
+    }, {
+        sequelize,
         modelName: "ComponentSize",
-        tableName:"t_component_size"
+        tableName: "t_component_size"
     })
 }

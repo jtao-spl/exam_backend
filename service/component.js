@@ -11,13 +11,19 @@ async function getComponentCriteria(id) {
     });
     let m = [];
     SizedElementSymbol.map((symbol, index) => {
-        m.push({ type: symbol, required: sizes.filter(item => item.FirstType === ElementFirstType.SizedElement && item.SecondType === index).length > 0 ? true : false });
+        const count =  sizes.filter(item => item.FirstType === ElementFirstType.SizedElement && item.SecondType === index).length;
+        m.push({ type: symbol, count: count, required: count > 0 ? true : false });
     });
     GelToleranceSymbol.map((symbol) => {
-        m.push({ type: symbol, required: sizes.filter(item => item.FirstType === ElementFirstType.GeometricalTolerance && item.GeoToleranceType === symbol).length > 0 ? true : false });
+        const count = sizes.filter(item => item.FirstType === ElementFirstType.GeometricalTolerance && item.GeoToleranceType === symbol).length;
+        m.push({ type: symbol, count: count, required: count > 0 ? true : false });
     });
-    m.push({ type: 'Ra', required: sizes.filter(item => item.FirstType === ElementFirstType.SurfaceRoughness).length > 0 ? true : false });
-    return m
+    const Ras = sizes.filter(item => item.FirstType === ElementFirstType.SurfaceRoughness);
+    let RaSizeList =[...new Set(Ras.map(item=>item.SurfaceRoughnessVal))];
+    RaSizeList.map((size)=>{
+        m.push({ type: 'Ra', size: size,  count: Ras.filter(item=>item.SurfaceRoughnessVal === size).length, required: true });
+    })
+    return m;
 }
 
 module.exports = { getComponentCriteria }

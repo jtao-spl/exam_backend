@@ -1,60 +1,66 @@
-const { DataTypes, Model, NOW} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 
-module.exports = (sequelize) =>{
-    class ExamCriteria extends Model {}
+module.exports = (sequelize) => {
+    class ExamCriteria extends Model { }
     ExamCriteria.init({
-        Id:{
+        Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        CriteriaId:{
+        CriteriaId: {
             type: DataTypes.INTEGER,
-            allowNull:false,
+            allowNull: false,
             defaultValue: 0,
         },
-        FirstType:{
-            type:DataTypes.INTEGER,
-            allowNull:false,
-            defaultValue:0
+        FirstType: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
-        SizeType:{
+        SizeType: {
             type: DataTypes.TINYINT,
-            allowNull:true
+            allowNull: true
         },
         SizeDelta: {
-            type: DataTypes.DECIMAL(6,3)
+            type: DataTypes.DECIMAL(6, 3)
         },
-        SizeDeductScore:{
+        SizeDeductScore: {
             type: DataTypes.TINYINT,
         },
-        GeoType:{
-            type:DataTypes.STRING(5),
+        GeoType: {
+            type: DataTypes.STRING(5),
         },
-        GeoBase:{
-            type:DataTypes.STRING(20),
+        GeoBase: {
+            type: DataTypes.STRING(20),
         },
-        GeoDelta:{
-            type:DataTypes.DECIMAL(6,3)
+        GeoDelta: {
+            type: DataTypes.DECIMAL(6, 3)
         },
-        GeoDeductScore:{
+        GeoDeductScore: {
             type: DataTypes.TINYINT
         },
-        SurfaceRoughnessDesc:{
-            type:DataTypes.STRING(100),
+        SurfaceRoughnessVal:{
+            type: DataTypes.STRING(10),
         },
-        OtherDesc:{
-            type:DataTypes.STRING(100),
+        SurfaceRoughnessScore: {
+            type: DataTypes.DECIMAL(6, 3),
         },
-        Deleted:{
+        UnDeclaredChamferCount:{
+            type: DataTypes.TINYINT,
+        },
+        UnDeclaredChamferTotalVal: {
+            type: DataTypes.TINYINT,
+        },
+        Deleted: {
             type: DataTypes.BOOLEAN,
-            allowNull:false,
+            allowNull: false,
             defaultValue: false
         }
-    },{
-        sequelize, 
-        modelName:"ExamCriteria",
+    }, {
+        sequelize,
+        modelName: "ExamCriteria",
         tableName: "t_exam_criteria",
     })
 }

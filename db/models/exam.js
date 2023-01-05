@@ -1,52 +1,52 @@
-const { DataTypes, Model, NOW} = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 
-module.exports = (sequelize) =>{
-    class Exam extends Model {}
+module.exports = (sequelize) => {
+    class Exam extends Model { }
     Exam.init({
-        Id:{
+        Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            autoIncrement:true
+            autoIncrement: true
         },
-        ExamDate:{
+        ExamDate: {
             type: DataTypes.DATEONLY,
             allowNull: false,
             defaultValue: DataTypes.NOW,
         },
-        StartTime:{
+        StartTime: {
             type: DataTypes.STRING(20),
             allowNull: false,
             defaultValue: '00:00',
         },
-        FinishTime:{
+        FinishTime: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            defaultValue:  '00:00',
+            defaultValue: '00:00',
         },
-        ExamTarget:{
+        ExamTarget: {
             type: DataTypes.STRING(20),
             allowNull: false,
             defaultValue: '',
         },
-        ExamComponent:{
+        ExamComponent: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        SizePrecisionLevel:{
+        SizePrecisionLevel: {
             type: DataTypes.TINYINT,
             allowNull: false,
             defaultValue: 1,
         },
-        ExamTeacher:{
+        ExamTeacher: {
             type: DataTypes.STRING(20),
             allowNull: false,
             defaultValue: '',
         },
-        CriteriaId:{
+        CriteriaId: {
             type: DataTypes.INTEGER,
-            allowNull:false,
+            allowNull: false,
             defaultValue: -1,
         },
         Status: {
@@ -54,18 +54,24 @@ module.exports = (sequelize) =>{
             allowNull: false,
             defaultValue: 0,
         },
-        Data:{
+        Grade:{
+            type: DataTypes.STRING(20),
+        },
+        Class:{
+            type: DataTypes.STRING(10),
+        },
+        Data: {
             type: DataTypes.JSON,
             allowNull: true
         },
-        Deleted:{
+        Deleted: {
             type: DataTypes.BOOLEAN,
-            allowNull:false,
+            allowNull: false,
             defaultValue: false
         }
-    },{
-        sequelize, 
-        modelName:"Exam",
+    }, {
+        sequelize,
+        modelName: "Exam",
         tableName: "t_exam",
     })
 }

@@ -13,6 +13,8 @@ const modelDefiners = [
     require('./models/exam'),
     require('./models/exam_criteria'),
     require('./models/score'),
+    require('./models/student'),
+    require('./models/exam_target'),
 ]
 
 for (const modelDefiner of modelDefiners){

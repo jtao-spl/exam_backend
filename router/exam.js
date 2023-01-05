@@ -9,7 +9,7 @@ const ElementFirstType = {
     SizedElement: 0,
     GeometricalTolerance: 1,
     SurfaceRoughness: 2,
-    Other: 3
+    Other: 3 //未注倒角
 }
 const SizedElementSubType = {
     Line: 0,
@@ -37,8 +37,8 @@ router.get('/', async (req, res, next) => {
         if (ExamComponent !== 0) {
             condition = { ExamComponent: ExamComponent, ...condition }
         }
-        if (Status){
-            condition = {Status: Status, ...condition}
+        if (Status) {
+            condition = { Status: Status, ...condition }
         }
         const exams = await models.Exam.findAll({
             order: [["Id", "DESC"]],
@@ -111,9 +111,9 @@ router.post('/', async (req, res, next) => {
     }
 });
 
-router.get('/criteria', async (req, res, next)=>{
+router.get('/criteria', async (req, res, next) => {
     const CriteriaId = Number.parseInt(req.query.CriteriaId);
-    if(isNaN(CriteriaId)){
+    if (isNaN(CriteriaId)) {
         result = {
             code: ErrCode.ERR_INVALID_PARAMS,
             msg: `参数 CriteriaId 无效`,
@@ -122,14 +122,31 @@ router.get('/criteria', async (req, res, next)=>{
         return res.json(result);
     }
     const criterias = await models.ExamCriteria.findAll({
-        where: {CriteriaId: CriteriaId}
+        where: { CriteriaId: CriteriaId }
     });
     result = {
         code: 0,
-        msg:`success`,
-        data: criterias.map(criteria=> criteria.toJSON())
+        msg: `success`,
+        data: criterias.map(criteria => criteria.toJSON())
     }
     return res.json(result);
+})
+
+/**
+ * 获取考核项目
+ */
+router.get('/target', async (req, res, next) => {
+    try {
+        const targets = await models.ExamTarget.findAll();
+        result = {
+            code: 0,
+            msg: `success`,
+            data: targets.map(target => target.toJSON())
+        }
+        return res.json(result);
+    } catch (error) {
+        next(error)
+    }
 })
 /**
  * 按id查询exam，其他精确的get方法的请求请放在这个之前
@@ -138,7 +155,7 @@ router.get('/:Id', async (req, res, next) => {
     try {
 
         const Id = Number.parseInt(req.params.Id);
-        if(isNaN(Id)){
+        if (isNaN(Id)) {
             const result = {
                 code: ErrCode.ERR_INVALID_PARAMS,
                 msg: '无效的考核Id',
@@ -146,9 +163,9 @@ router.get('/:Id', async (req, res, next) => {
             }
             return res.status(200).json(result);
         }
-        
+
         const exam = await models.Exam.findByPk(Id);
-       
+
         const result = {
             code: ErrCode.SUCCESS,
             msg: 'success',
@@ -160,36 +177,39 @@ router.get('/:Id', async (req, res, next) => {
     }
 });
 
-router.patch('/:Id', async(req, res, next)=>{
+router.patch('/:Id', async (req, res, next) => {
     try {
         const ExamId = Number.parseInt(req.params.Id);
-        if (ExamId === NaN){
+        if (ExamId === NaN) {
             return res.status(200).json({
-                code: ErrCode.ERR_INVALID_PARAMS, 
-                msg:`无效的考核Id:${req.params.Id}`,
-                data:null
-                });
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核Id:${req.params.Id}`,
+                data: null
+            });
         }
         const exam = await models.Exam.findByPk(ExamId);
-        if (!exam){
+        if (!exam) {
             return res.status(200).json({
-                code: ErrCode.ERR_INVALID_PARAMS, 
-                msg:`未找到考核:${req.params.Id}，请确认。`, 
-                data:null});
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未找到考核:${req.params.Id}，请确认。`,
+                data: null
+            });
         }
-        const {Status} = req.body;
-        if (![0,1,2].includes(Number.parseInt(Status))){
+        const { Status } = req.body;
+        if (![0, 1, 2].includes(Number.parseInt(Status))) {
             return res.status(200).json({
-                code: ErrCode.ERR_INVALID_PARAMS, 
-                msg:`无效的状态枚举值: ${Status}`, 
-                data:null});
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的状态枚举值: ${Status}`,
+                data: null
+            });
         }
-        await exam.update({Status:Status});
+        await exam.update({ Status: Status });
         return res.status(200).json({
-            code: ErrCode.SUCCESS, 
-            msg:`success`, 
-            data:exam.toJSON()});
-        
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: exam.toJSON()
+        });
+
     } catch (err) {
         next(err)
     }
@@ -228,7 +248,12 @@ router.post('/criteria', async (req, res, next) => {
         console.log(`examID:${examId}, CriteriaId: ${CriteriaId}`)
         await exam.update({ CriteriaId: CriteriaId });
         const result = await getComponentCriteria(exam.ExamComponent);
-        const { SizedElement, GeoElement, SurfaceRoughnessDesc, OtherDesc } = req.body;
+        const { SizedElement,
+            GeoElement,
+            surfaceRoughnessElement,
+            UnDeclaredChamferCount,
+            UnDeclaredChamferTotalVal } = req.body;
+        console.log(`保存考核标准请求：${JSON.stringify(req.body)}`);
         SizedElement.map(async item => {
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
@@ -248,18 +273,31 @@ router.post('/criteria', async (req, res, next) => {
                 GeoDeductScore: item.GeoDeductScore
             })
         })
-        if (SurfaceRoughnessDesc) {
+        surfaceRoughnessElement.map(async item => {
+            const score = item.surfaceRoughnessTotalScore / item.count;
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
                 FirstType: ElementFirstType.SurfaceRoughness,
-                SurfaceRoughnessDesc: SurfaceRoughnessDesc
+                SurfaceRoughnessVal: item.size,
+                SurfaceRoughnessScore: score
+            })
+        })
+
+        if(UnDeclaredChamferCount === 0){
+            await models.ExamCriteria.create({
+                CriteriaId: CriteriaId,
+                FirstType: ElementFirstType.Other,
+                UnDeclaredChamferCount: 0,
+                UnDeclaredChamferTotalVal: 0
+            })
+        }else{
+            await models.ExamCriteria.create({
+                CriteriaId: CriteriaId,
+                FirstType: ElementFirstType.Other,
+                UnDeclaredChamferCount: UnDeclaredChamferCount,
+                UnDeclaredChamferTotalVal: UnDeclaredChamferTotalVal
             })
         }
-        await models.ExamCriteria.create({
-            CriteriaId: CriteriaId,
-            FirstType: ElementFirstType.Other,
-            OtherDesc: OtherDesc
-        })
 
         const ret = {
             code: ErrCode.SUCCESS,
@@ -293,6 +331,28 @@ router.post('/scores', async (req, res, next) => {
             code: ErrCode.SUCCESS,
             msg: `success`,
             data: exam.toJSON()
+        }
+        return res.status(200).json(ret);
+    }
+    catch (err) {
+        next(err)
+    }
+})
+
+/**
+ * 保存考核项目
+ */
+router.post('/target', async (req, res, next) => {
+    try {
+        const { Name } = req.body;
+        const target = await models.ExamTarget.create({ Name: Name });
+        if (!target) {
+            return res.json({ code: ErrCode.ERR_INVALID_PARAMS, msg: `保存失败`, data: null })
+        }
+        const ret = {
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: target.toJSON()
         }
         return res.status(200).json(ret);
     }
