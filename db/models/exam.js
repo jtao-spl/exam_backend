@@ -54,11 +54,8 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0,
         },
-        Grade:{
-            type: DataTypes.STRING(20),
-        },
         Class:{
-            type: DataTypes.STRING(10),
+            type: DataTypes.INTEGER,
         },
         Data: {
             type: DataTypes.JSON,

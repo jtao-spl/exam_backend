@@ -1,40 +1,32 @@
 const { DataTypes, Model } = require('sequelize');
 
 module.exports = (sequelize) => {
-    class Student extends Model { }
-    Student.init({
+    class Class extends Model { }
+    Class.init({
         Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
             autoIncrement: true
         },
-        StudentId: {
+        Grade: {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        Name: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            defaultValue: '',
-        },
         Class: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.TINYINT,
             allowNull: false,
-            defaultValue:0
+            defaultValue: 0,
         },
         Deleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
-            defaultValue: false
-        }
+            defaultValue: false,
+        },
     }, {
         sequelize,
-        modelName: "Student",
-        tableName: "t_student",
+        tableName: "t_class",
+        modelName: "Class"
     })
 }
-
-
-

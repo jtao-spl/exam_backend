@@ -45,7 +45,7 @@ app.post('/login', async (req, res, next) => {
   const Id = Number.parseInt(id);
   const auth = await models.Auth.findOne({
     where: {
-      Id: Id,
+      Name: Id,
       Password: password
     }
   });
