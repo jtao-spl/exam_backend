@@ -1,9 +1,9 @@
 const express = require('express');
-const { DATE } = require('sequelize');
 const router = express.Router();
 const { models } = require('../db/index');
 const ErrCode = require('../errcode');
-const { getComponentCriteria } = require('../service/component')
+const { getComponentCriteria } = require('../service/component');
+const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
 
 const ElementFirstType = {
     SizedElement: 0,
@@ -29,6 +29,7 @@ const ExamStatus = new Map([
  */
 router.get('/', async (req, res, next) => {
     try {
+        const token = getTokenFromReq(req);
         const page = Number.parseInt(req.query.page);
         const limit = Number.parseInt(req.query.limit);
         const ExamComponent = Number.parseInt(req.query.ExamComponent);
@@ -40,13 +41,24 @@ router.get('/', async (req, res, next) => {
         if (Status) {
             condition = { Status: Status, ...condition }
         }
+        //如果是学生，根据班级过滤考核
+        if (token !== '') {
+            const cache = await getCachedDataInfo(token);
+            if (cache) {
+                const info = JSON.parse(cache);
+                const { Role, Class } = info;
+                if (Role === 3 && Class !== undefined) {
+                    condition = { ...condition, Class: Class }
+                }
+            }
+        }
         const exams = await models.Exam.findAll({
             order: [["Id", "DESC"]],
             offset: page > 0 ? (page - 1) * limit : 0,
             limit: limit,
             where: condition
         });
-        const total = await models.Exam.count();
+        const total = await models.Exam.count({ where: condition });
         const result = {
             code: ErrCode.SUCCESS,
             msg: 'success',
@@ -289,12 +301,12 @@ router.post('/criteria', async (req, res, next) => {
             })
         })
         surfaceRoughnessElement.map(async item => {
-            const score = item.surfaceRoughnessTotalScore / item.count;
             await models.ExamCriteria.create({
                 CriteriaId: CriteriaId,
                 FirstType: ElementFirstType.SurfaceRoughness,
                 SurfaceRoughnessVal: item.size,
-                SurfaceRoughnessScore: score
+                SurfaceRoughnessCount: item.count,
+                SurfaceRoughnessScore: item.surfaceRoughnessTotalScore
             })
         })
 

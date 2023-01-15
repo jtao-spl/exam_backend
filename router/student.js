@@ -94,4 +94,22 @@ router.get('/gradeclass', async (req, res, next) => {
         next(error)
     }
 })
+
+router.get('/', async(req, res,next)=>{
+    try {
+        const {StudentIds} = req.query;
+        const students =  await models.Student.findAll({
+            where:{
+                StudentId: StudentIds
+            }
+        });
+        return res.json({
+            code: 0,
+            msg: `success`,
+            data: students.map(student=>student.toJSON())
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 module.exports = router

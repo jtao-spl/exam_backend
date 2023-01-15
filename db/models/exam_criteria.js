@@ -44,6 +44,9 @@ module.exports = (sequelize) => {
         SurfaceRoughnessVal:{
             type: DataTypes.STRING(10),
         },
+        SurfaceRoughnessCount: {
+            type: DataTypes.INTEGER,
+        },
         SurfaceRoughnessScore: {
             type: DataTypes.DECIMAL(6, 3),
         },

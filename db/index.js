@@ -16,6 +16,7 @@ const modelDefiners = [
     require('./models/student'),
     require('./models/exam_target'),
     require('./models/class'),
+    require('./models/teacher'),
 ]
 
 for (const modelDefiner of modelDefiners){

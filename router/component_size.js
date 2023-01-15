@@ -67,7 +67,7 @@ router.post('/', async (req, res, next) => {
     try {
         //路径中的参数通过req.params.xxx来获取,注意类型转换
         const { ComponentId, FirstType, SecondType, BaseSize, GeoToleranceType,
-            GeoToleranceVal, SurfaceRoughnessType, SurfaceRoughnessVal, OtherRequirements } = req.body;
+            GeoToleranceVal, SurfaceRoughnessType, SurfaceRoughnessVal, UnDeclaredChamferCount } = req.body;
         const component = await models.Component.findByPk(ComponentId);
         if (!component) {
             result = {
@@ -108,7 +108,7 @@ router.post('/', async (req, res, next) => {
             }
             return res.status(200).json(result);
         }
-        if (FirstType === ElementFirstType.Other && !OtherRequirements) {
+        if (FirstType === ElementFirstType.Other && !UnDeclaredChamferCount) {
             result = {
                 code: ErrCode.ERR_INVALID_PARAMS,
                 msg: `无效数据：其他要求缺失`

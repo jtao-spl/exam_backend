@@ -19,14 +19,32 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0,
         },
-        TotalScore: {
-            type: DataTypes.INTEGER,
+        SelfData: {
+            type: DataTypes.JSON,
             allowNull: true,
         },
-
-        DetailScore: {
+        SelfScore: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        },
+        GroupData: {
             type: DataTypes.JSON,
-            allowNull: true
+            allowNull: true,
+        },
+        GroupScore: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        },
+        FinalData: {
+            type: DataTypes.JSON,
+            allowNull: true,
+        },
+        FinalScore: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
         },
         Deleted: {
             type: DataTypes.BOOLEAN,

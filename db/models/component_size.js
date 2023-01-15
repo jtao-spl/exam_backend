@@ -43,8 +43,11 @@ module.exports = (sequelize) => {
         SurfaceRoughnessVal: {
             type: DataTypes.STRING(10),
         },
-        OtherRequirements: {
-            type: DataTypes.STRING(500)
+        SurfaceRoughnessCount: {
+            type: DataTypes.INTEGER,
+        },
+        UnDeclaredChamferCount: {
+            type: DataTypes.INTEGER
         },
         Deleted: {
             type: DataTypes.BOOLEAN,

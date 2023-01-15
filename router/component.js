@@ -21,7 +21,7 @@ router.get('/', async (req, res, next) => {
             limit: limit,
             where: { Deleted: false }
         });
-        const total = await models.Component.count();
+        const total = await models.Component.count({ where: { Deleted: false } });
         // res.send(`获取零件列表, ${JSON.stringify(components)}` );
         const result = {
             code: ErrCode.SUCCESS,
@@ -122,7 +122,7 @@ router.patch('/:id', async (req, res, next) => {
             }
             return res.status(404).json(result);
         }
-        await component.update({...req.body});
+        await component.update({ ...req.body });
         const result = {
             code: ErrCode.SUCCESS,
             msg: `success`,

@@ -19,10 +19,13 @@ async function getComponentCriteria(id) {
         m.push({ type: symbol, count: count, required: count > 0 ? true : false });
     });
     const Ras = sizes.filter(item => item.FirstType === ElementFirstType.SurfaceRoughness);
-    let RaSizeList =[...new Set(Ras.map(item=>item.SurfaceRoughnessVal))];
-    RaSizeList.map((size)=>{
-        m.push({ type: 'Ra', size: size,  count: Ras.filter(item=>item.SurfaceRoughnessVal === size).length, required: true });
+    Ras.map(ra=>{
+        m.push({ type: 'Ra', size: ra.SurfaceRoughnessVal,  count: ra.SurfaceRoughnessCount, required: true });
     })
+    const other = sizes.filter(item=>item.FirstType === 3);
+    if (other){
+        m.push({type: 'other', count: other[0].UnDeclaredChamferCount, required: true})
+    }
     return m;
 }
 
