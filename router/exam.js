@@ -4,6 +4,7 @@ const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component');
 const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
+const Decimal = require('decimal');
 
 const ElementFirstType = {
     SizedElement: 0,
@@ -58,18 +59,28 @@ router.get('/', async (req, res, next) => {
             limit: limit,
             where: condition
         });
+        const examsDict = await Promise.all(await exams.map(async exam => {
+            let ret = { ...exam.toJSON(), Class: '' };//下发班级初始化为空
+            if (exam.Class === 0) return ret;
+
+            const cls = await models.Class.findByPk(exam.Class);
+            if (cls) {
+                ret.Class = `${cls.Grade}级${cls.Class}班`;
+            }
+            return ret;
+        }))
         const total = await models.Exam.count({ where: condition });
         const result = {
             code: ErrCode.SUCCESS,
             msg: 'success',
-            data: exams.map(exam => exam.toJSON()),
+            data: examsDict,
             page: page,
             limit: Math.min(limit, exams.length),
             total: total,
         }
         return res.status(200).json(result);
     } catch (err) {
-        // next(err)
+        next(err)
     }
 });
 /***
@@ -177,11 +188,17 @@ router.get('/:Id', async (req, res, next) => {
         }
 
         const exam = await models.Exam.findByPk(Id);
-
+        let ret = { ...exam.toJSON(), Class: '' }; //下发班级初始化为空
+        if (exam && exam.Class !== 0) {
+            const cls = await models.Class.findByPk(exam.Class);
+            if (cls) {
+                ret.Class = `${cls.Grade}级${cls.Class}班`;
+            }
+        }
         const result = {
             code: ErrCode.SUCCESS,
             msg: 'success',
-            data: exam?.toJSON()
+            data: ret
         }
         return res.status(200).json(result);
     } catch (err) {
@@ -353,7 +370,7 @@ router.post('/scores', async (req, res, next) => {
             return res.status(404).json(result);
         }
         const { scores } = req.body;
-        await exam.update({ Data: { "scores": scores } });
+        await exam.update({ Data: { ...exam.Data, "scores": scores } });
         const ret = {
             code: ErrCode.SUCCESS,
             msg: `success`,
@@ -387,5 +404,45 @@ router.post('/target', async (req, res, next) => {
         next(err)
     }
 })
+
+/**
+ * 保存自定义的尺寸偏差数据
+ */
+router.patch('/:examId/size/precision', async (req, res, next) => {
+    try {
+        const examId = Number.parseInt(req.params.examId);
+        if (isNaN(examId)) {
+            return res.json({ code: -1, msg: `考核Id非数值: ${req.params.examId}`, data: null })
+        }
+        const exam = await models.Exam.findByPk(examId);
+        if (!exam) {
+            return res.json({ code: -1, msg: `无效的考核Id: ${req.params.examId}`, data: null })
+        }
+        const { data } = req.body;
+        if (data.length === 0) {
+            return res.json({ code: 0, msg: `success`, data: [] })
+        }
+
+        //检查id是否都有效
+        const ids = data.map(item => item.Id);
+        const sizes = await models.ComponentSize.findAll({
+            where: { Id: ids }
+        })
+        const existsIds = sizes.map(item => item.Id);
+        if (sizes.length !== data.length) {
+            const invalidIds = ids.filter(id => !existsIds.includes(id));
+            return res.json({ code: 1, msg: `请求中存在无效的Id:${invalidIds}`, data: null })
+        }
+        const invalidSizes = sizes.filter(item => item.ComponentId !== exam.ExamComponent)
+        if (invalidSizes.length > 0) {
+            return res.json({ code: 1, msg: `请求中存在与考核不相关的组件尺寸id:${invalidSizes.map(item => item.Id)}`, data: null })
+        }
+        await exam.update({ Data: { ...exam.Data, precision: data } })
+        return res.json({ code: 0, msg: `success`, data: exam.toJSON() });
+    } catch (error) {
+        next(error)
+    }
+})
+
 
 module.exports = router

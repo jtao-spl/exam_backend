@@ -102,7 +102,7 @@ router.get('/issubmitted', async (req, res, next) => {
         if (info.Role === 2) {
             return res.json({ code: ErrCode.ERR_BAD_CREDENTIAL, msg: `当前角色非学生`, data: null })
         }
-        const record = await models.Score.findOne({ ExamId: ExamId, StudentId: info.Id });
+        const record = await models.Score.findOne({ where:{ ExamId: ExamId, StudentId: info.Id }});
         let isSubmitted = false
         if (record) {
             isSubmitted = true

@@ -78,7 +78,7 @@ router.post('/', async (req, res, next) => {
         }
         if (![ElementFirstType.SizedElement,
         ElementFirstType.GeometricalTolerance,
-        ElementFirstType.SurfaceRoughness, 
+        ElementFirstType.SurfaceRoughness,
         ElementFirstType.Other].includes(FirstType)) {
             result = {
                 code: ErrCode.ERR_NOT_FOUND,
