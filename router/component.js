@@ -62,7 +62,7 @@ router.get('/count', async (req, res, next) => {
     }
 })
 
-router.get('/creterials', async (req, res, next) => {
+router.get('/criterials', async (req, res, next) => {
     try {
         const id = Number.parseInt(req.query.ComponentId);
         if (id === 0) {

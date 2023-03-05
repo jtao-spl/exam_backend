@@ -224,7 +224,7 @@ router.patch('/:Id', async (req, res, next) => {
                 data: null
             });
         }
-        const { Status, Grade, Class } = req.body;
+        const { Status, Grade, Major, Class } = req.body;
         if (![0, 1, 2].includes(Number.parseInt(Status))) {
             return res.status(200).json({
                 code: ErrCode.ERR_INVALID_PARAMS,
@@ -232,14 +232,14 @@ router.patch('/:Id', async (req, res, next) => {
                 data: null
             });
         }
-        if (Grade && Class) {
+        if (Grade && Maojr && Class) {
             const cls = await models.Class.findOne({
-                where: { Grade: Grade, Class: Class }
+                where: { Grade: Grade, Major: Major, Class: Class }
             });
             if (!cls) {
                 return res.json({
                     code: ERR_INVALID_PARAMS,
-                    msg: `未录入班级: ${Grade}级${Class}班的学生信息。`,
+                    msg: `未录入班级: ${Grade}级${Major}${Class}班的学生信息。`,
                     data: null
                 })
             }

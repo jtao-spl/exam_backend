@@ -12,6 +12,7 @@ const clip_router = require('./router/clip');
 const student_router = require('./router/student');
 const score_router = require('./router/score');
 const admin_router = require('./router/admin');
+const tool_router = require('./router/tool');
 const { jwtAuth } = require('./utils/jwt');
 const ErrCode = require('./errcode');
 const { TeacherRoleRequired, AdminRoleRequired,FillInfoFromReq } = require('./utils/common');
@@ -44,8 +45,9 @@ app.use('/clip', TeacherRoleRequired, clip_router);
 app.use('/component', TeacherRoleRequired, component_router);
 app.use('/size', TeacherRoleRequired, component_size_router);
 app.use('/exam', TeacherRoleRequired, exam_router);
-app.use('/student', TeacherRoleRequired, student_router)
+app.use('/student', TeacherRoleRequired, student_router);
 app.use('/score', score_router);
+app.use('/tool',TeacherRoleRequired,  tool_router);
 
 app.use((req, res, next) => {
   res.status(404).json({ msg: '404 Not Found.' })

@@ -19,43 +19,24 @@ router.post(`/`, async (req, res, next) => {
             const Class = await models.Class.findOne({ where: { Grade: student.Grade, Class: student.Class } });
             const [stuInDB, isCreated] = await models.Student.findOrCreate({
                 where: { StudentId: student.StudentId },
-                defaults: {Name: student.Name, Class: Class.Id}
+                defaults: { Name: student.Name, Class: Class.Id }
             });
-            if(!isCreated && (stuInDB.Class !== Class.Id || stuInDB.Name !== student.Name)){
-                await stuInDB.update({Class: Class.Id, Name: student.Name});
+            if (!isCreated && (stuInDB.Class !== Class.Id || stuInDB.Name !== student.Name)) {
+                await stuInDB.update({ Class: Class.Id, Name: student.Name });
             }
             return stuInDB;
         }));
 
-        const auths = newStudents.map(async student=>{
+        const auths = newStudents.map(async student => {
             await models.Auth.findOrCreate({
-                where: {Name: student.StudentId},
-                defaults:{
+                where: { Name: student.StudentId },
+                defaults: {
                     Password: student.StudentId
                 }
             })
         })
 
 
-        // const studentIds = students.map(student => student.StudentId);
-        // const existsRecords = await models.Student.findAll({
-        //     where: {
-        //         studentId: studentIds
-        //     }
-        // })
-        // const existsIds = existsRecords.map(record => record.StudentId)
-        // const newItem = students.filter(student => !existsIds.includes(student.StudentId));
-        // //已存在的执行更新
-        // for (let record of existsRecords) {
-        //     const student = students.filter(student => student.StudentId === record.StudentId)
-        //     if (student.length === 0) continue
-        //     if (record.Name !== student[0].Name || record.Grade !== student[0].Grade || record.Class !== student[0].Class) {
-        //         updated.push(student[0]);
-        //         await record.update(student[0])
-        //     }
-        // }
-        // //新纪录批量创建
-        // await models.Student.bulkCreate(newItem);
         return res.send({
             code: 0,
             msg: 'success',
@@ -72,18 +53,12 @@ router.post(`/`, async (req, res, next) => {
  */
 router.get('/gradeclass', async (req, res, next) => {
     try {
-        const Classes = await models.Class.findAll();
-        let mp = new Map();
-        for (let cls of Classes){
-            if (mp.has(cls.Grade)){
-                mp.set(cls.Grade, [...mp.get(cls.Grade), cls.Class]);
-            }else{
-                mp.set(cls.Grade, [cls.Class]);
-            }
-        }
+        const grades = await models.Grade.findAll({ where: { Deleted: 0 } });
         let lst = [];
-        for (let entry of mp.entries()){
-            lst.push({Grade: entry[0], Class: entry[1]})
+        for (let grade of grades) {
+            for (let i = 0; i < grade.ClassCount; i++) {
+                lst.push({ Grade: grade.Grade, Major: grade.Major, Class: i + 1 })
+            }
         }
         return res.json({
             code: ErrCode.SUCCESS,
@@ -95,21 +70,79 @@ router.get('/gradeclass', async (req, res, next) => {
     }
 })
 
-router.get('/', async(req, res,next)=>{
+router.get('/', async (req, res, next) => {
     try {
-        const {StudentIds} = req.query;
-        const students =  await models.Student.findAll({
-            where:{
-                StudentId: StudentIds
+        const { StudentIds, Grade, Major, Class, GradeId } = req.query;
+        let condition = null;
+        if (StudentIds) {
+            condition = { StudentId: StudentIds }
+        }
+        if (Grade && Major) {
+            const grade = await models.Grade.findOne({
+                where: {
+                    Grade: Grade,
+                    Major: Major,
+                }
+            })
+            if (grade) {
+                condition = { GradeId: grade.Id }
+            }
+        }
+        if (Class) {
+            condition = { ...condition, Class: Class }
+        }
+        if (GradeId) {
+            condition = { ...condition, GradeId: GradeId }
+        }
+        let students;
+        if (condition === null) {
+            condition = {
+                order: [["Id", "DESC"]],
+                offset: 0,
+                limit: 50,
+            }
+            students = await models.Student.findAll({ ...condition });
+        }
+        else {
+            students = await models.Student.findAll({ where: condition });
+        }
+        return res.json({
+            code: 0,
+            msg: `success`,
+            data: students.map(student => student.toJSON())
+        })
+
+    } catch (error) {
+        next(error)
+    }
+})
+
+/**
+ * 查询年级表 返回原始item数据
+ */
+router.get('/grade', async (req, res, next) => {
+    try {
+        const { ids } = req.query;
+        if (!ids) {
+            return res.json({
+                code: 0,
+                msg: `success`,
+                data: null
+            })
+        }
+        const grades = await models.Grade.findAll({
+            where: {
+                Id: ids,
+                Deleted: 0,
             }
         });
         return res.json({
             code: 0,
             msg: `success`,
-            data: students.map(student=>student.toJSON())
+            data: grades.map(grade => grade.toJSON())
         })
     } catch (error) {
-        next(error)
+        next(err)
     }
 })
 module.exports = router

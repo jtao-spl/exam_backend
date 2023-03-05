@@ -37,22 +37,14 @@ const getCachedDataInfo = (key) => {
  * @returns 
  */
 const TeacherRoleRequired = async (req, res, next) => {
-    try {
-        // const token = getTokenFromReq(req);
-        // if (!token) {
-        //     return res.json({ code: 6, msg: `登录信息已失效，请重新登录`, data: null })
-        // }
-        // const data = await getCachedDataInfo(token);
-        // if (!data) {
-        //     return res.json({ code: 6, msg: `登录信息已失效，请重新登录`, data: null })
-        // }
-
-        // console.log(`当前用户缓存信息: ${JSON.stringify(data)}`);
-        // const info = JSON.parse(data);
+    try {;
         console.log(`into TeacherRoleRequired, info: ${JSON.stringify(req.info)}`)
         if (req.info.Role === 2) {
             console.log(`当前用户角色为：教师`);
-            // req.info = info;
+            next('route')
+        }
+        else if(req.info.Role === 1){
+            console.log(`当前角色为管理员，拥有全部权限`);
             next('route')
         }
         else if (req.method === 'GET') {

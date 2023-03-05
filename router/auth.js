@@ -19,15 +19,29 @@ router.post('/login', async (req, res, next) => {
       Password: password
     }
   });
-  if (auth !== null || (Id === 654321 && password === '123456')) {
+  if (auth !== null) {
+    if(auth.Status ===3){
+      return res.json({
+        code: 1, 
+        msg:`账号已禁用，请联系系统管理员处理`, 
+        data: null
+      })
+    }
     const token = createToken({ Id: Id, Password: password });
-    console.log(`create token: ${token}, auth.role: ${auth.Role}`)
-
+    console.log(`create token: ${token}, auth.role: ${auth.Role}`);
     let cacheData = { Role: auth.Role, Id: Id }
-    //如果是学生，缓存班级信息
-    const student = await models.Student.findOne({ where: { StudentId: Id } });
-    if (student) {
-      cacheData = { ...cacheData, Class: student.Class };
+    let entity = null;
+    if(auth.Role ===2){
+      entity = await models.Teacher.findOne({where:{Phone: Id}});
+      if(entity){
+        cacheData = {...cacheData, Name: entity.Name}
+      }
+    }
+    if(auth.Role === 3){
+      entity = await models.Student.findOne({where: {StudentId: Id}});
+      if(entity){
+        cacheData = { ...cacheData, Class: student.Class, Name: entity.Name };
+      }
     }
 
     await redisClient.setEx(token, 3600 * 24, JSON.stringify(cacheData));
@@ -38,7 +52,8 @@ router.post('/login', async (req, res, next) => {
       status: auth.Status,
       token: token, 
       role: auth.Role || 3,
-      Id: Id
+      Id: Id,
+      Name: cacheData.Name
     });
   } else {
     return res.json({ code: ErrCode.ERR_BAD_CREDENTIAL, msg: `登录信息无效`, data: null });

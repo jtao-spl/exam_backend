@@ -15,8 +15,10 @@ const modelDefiners = [
     require('./models/score'),
     require('./models/student'),
     require('./models/exam_target'),
-    require('./models/class'),
+    require('./models/grade'),
     require('./models/teacher'),
+    require('./models/tool'),
+    
 ]
 
 for (const modelDefiner of modelDefiners){
