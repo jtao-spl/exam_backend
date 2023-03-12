@@ -31,6 +31,10 @@ module.exports = (sequelize) => {
         BottomSize: {
             type: DataTypes.DECIMAL(4, 3)
         },
+        DiameterType:{
+            type: DataTypes.TINYINT,
+            defaultValue: 0,
+        },
         GeoToleranceType: {
             type: DataTypes.STRING(1),
         },
@@ -48,6 +52,9 @@ module.exports = (sequelize) => {
         },
         UnDeclaredChamferCount: {
             type: DataTypes.INTEGER
+        },
+        SafetyRequirement:{
+            type: DataTypes.STRING(50),
         },
         Deleted: {
             type: DataTypes.BOOLEAN,

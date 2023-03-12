@@ -86,6 +86,24 @@ router.get('/criterials', async (req, res, next) => {
     }
 })
 
+router.get('/search', async (req, res, next) => {
+    try {
+        const ids = req.query.Ids.map(id => Number.parseInt(id));
+        const components = await models.Component.findAll({
+            where: {
+                id: ids
+            },
+            limit: 50
+        })
+        return res.json({
+            code: 0,
+            msg: `success`,
+            data: components.map(component=>component.toJSON())
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 router.get('/:id', async (req, res, next) => {
     try {
         //路径中的参数通过req.params.xxx来获取,注意类型转换

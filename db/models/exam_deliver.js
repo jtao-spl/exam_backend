@@ -1,52 +1,58 @@
 const { DataTypes, Model } = require('sequelize');
 
 module.exports = (sequelize) => {
-    class Exam extends Model { }
-    Exam.init({
+    class ExamDeliver extends Model { }
+    ExamDeliver.init({
         Id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
             autoIncrement: true
         },
-        ExamTarget: {
+        ExamId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: -1,
+        },
+        TeacherId: {
             type: DataTypes.STRING(20),
             allowNull: false,
             defaultValue: '',
         },
-        ExamComponent: {
+        ExamDate: {
+            type: DataTypes.DATEONLY,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
+        StartTime: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            defaultValue: '00:00',
+        },
+        FinishTime: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            defaultValue: '00:00',
+        },
+        GradeId:{
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0,
         },
-        SizePrecisionLevel: {
-            type: DataTypes.TINYINT,
-            allowNull: false,
-            defaultValue: 1,
-        },
-        Creator: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
-            defaultValue: '',
-        },
-        CriteriaId: {
+        Class:{
             type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: -1,
+            defaultValue: 0,
+        },
+        Group:{
+            type: DataTypes.TINYINT,
+            allowNull: false,
+            defaultValue: 0,
         },
         Status: {
             type: DataTypes.TINYINT,
             allowNull: false,
             defaultValue: 0,
-        },
-        Shared: {
-            type:DataTypes.BOOLEAN,
-            allowNull:false,
-            defaultValue: 0,
-        },
-        Data: {
-            type: DataTypes.JSON,
-            allowNull: true
         },
         Deleted: {
             type: DataTypes.BOOLEAN,
@@ -55,8 +61,8 @@ module.exports = (sequelize) => {
         }
     }, {
         sequelize,
-        modelName: "Exam",
-        tableName: "t_exam",
+        modelName: "ExamDeliver",
+        tableName: "t_exam_deliver",
     })
 }
 

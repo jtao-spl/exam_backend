@@ -5,6 +5,7 @@ const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component');
 const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
 const Decimal = require('decimal');
+const { Op } = require("sequelize");
 
 const ElementFirstType = {
     SizedElement: 0,
@@ -30,10 +31,11 @@ const ExamStatus = new Map([
  */
 router.get('/', async (req, res, next) => {
     try {
-        const token = getTokenFromReq(req);
+        // const token = getTokenFromReq(req);
         const page = Number.parseInt(req.query.page);
         const limit = Number.parseInt(req.query.limit);
         const ExamComponent = Number.parseInt(req.query.ExamComponent);
+        const IncludeShared = ['true', '1'].includes(req.query.IncludeShared) ? 1 : 0;
         const Status = req.query.Status;
         let condition = { Deleted: false }
         if (ExamComponent !== 0) {
@@ -43,15 +45,34 @@ router.get('/', async (req, res, next) => {
             condition = { Status: Status, ...condition }
         }
         //如果是学生，根据班级过滤考核
-        if (token !== '') {
-            const cache = await getCachedDataInfo(token);
-            if (cache) {
-                const info = JSON.parse(cache);
-                const { Role, Class } = info;
-                if (Role === 3 && Class !== undefined) {
-                    condition = { ...condition, Class: Class }
-                }
-            }
+        // if (token !== '') {
+        //     const cache = await getCachedDataInfo(token);
+        //     if (cache) {
+        //         const info = JSON.parse(cache);
+        //         const { Role } = info;
+        //         if (Role === 2) {
+        //             const { Id } = info;
+        //             condition = { ...condition, Creator: Id }
+        //         }
+        //         if (Role === 3) {
+        //             const { Id, GradId, Class } = info;
+        //             condition = { ...condition, Class: Class }
+        //         }
+        //     }
+        // }
+        if (req.info.Role === 2) {
+            const { Id } = req.info;
+            condition = { ...condition, Creator: Id }
+        }
+        if (req.info.Role === 3) {
+            return res.json({
+                code: 1,
+                msg: `学生无权查询考核列表`,
+                data: null
+            })
+        }
+        if (IncludeShared) {
+            condition = {[Op.or]: [condition, { Shared: 1 }]}
         }
         const exams = await models.Exam.findAll({
             order: [["Id", "DESC"]],
@@ -59,21 +80,21 @@ router.get('/', async (req, res, next) => {
             limit: limit,
             where: condition
         });
-        const examsDict = await Promise.all(await exams.map(async exam => {
-            let ret = { ...exam.toJSON(), Class: '' };//下发班级初始化为空
-            if (exam.Class === 0) return ret;
+        // const examsDict = await Promise.all(await exams.map(async exam => {
+        //     let ret = { ...exam.toJSON(), Class: '' };//下发班级初始化为空
+        //     if (exam.Class === 0) return ret;
 
-            const cls = await models.Class.findByPk(exam.Class);
-            if (cls) {
-                ret.Class = `${cls.Grade}级${cls.Class}班`;
-            }
-            return ret;
-        }))
+        //     const cls = await models.Class.findByPk(exam.Class);
+        //     if (cls) {
+        //         ret.Class = `${cls.Grade}级${cls.Class}班`;
+        //     }
+        //     return ret;
+        // }))
         const total = await models.Exam.count({ where: condition });
         const result = {
             code: ErrCode.SUCCESS,
             msg: 'success',
-            data: examsDict,
+            data: exams.map(exam => exam.toJSON()),
             page: page,
             limit: Math.min(limit, exams.length),
             total: total,
@@ -89,9 +110,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
     try {
         //路径中的参数通过req.params.xxx来获取,注意类型转换
-        const { ExamDate, StartTime, FinishTime, ExamTarget, ExamComponent, SizePrecisionLevel,
-            ExamTeacher } = req.body;
-        console.log(`typeof ExamDate: ${typeof ExamDate}`);
+        const { ExamTarget, ExamComponent, SizePrecisionLevel } = req.body;
         const component = await models.Component.findByPk(ExamComponent);
         if (!component) {
             result = {
@@ -100,27 +119,36 @@ router.post('/', async (req, res, next) => {
             }
             return res.status(200).json(result);
         }
-        const eDate = new Date(ExamDate.substring(0, 10));
-        console.log(`eDate: ${eDate}`)
-        const sTime = new Date(StartTime);
-
-        const sTimeStr = `${sTime.getHours()}:${sTime.getMinutes()}`;
-
-        const fTime = new Date(FinishTime);
-        const fTimeStr = `${fTime.getHours()}:${fTime.getMinutes()}`;
-        console.log(`sTimeStr: ${sTimeStr}`)
-
-        console.log(`fTimeStr: ${fTimeStr}`)
-
+        let creator = null;
+        const token = getTokenFromReq(req);
+        if (token !== '') {
+            const cache = await getCachedDataInfo(token);
+            if (cache) {
+                const info = JSON.parse(cache);
+                const { Role, Id } = info;
+                if (Role === 3) {
+                    return res.json({
+                        code: 1,
+                        msg: `当前登录用户角色为学生，不能创建考核`,
+                        data: null
+                    })
+                }
+                creator = Id;
+            }
+        }
+        if (!creator) {
+            return res.json({
+                code: 1,
+                msg: `当前登录已过期，请重新登录`,
+                data: null
+            })
+        }
 
         const exam = await models.Exam.create({
-            ExamDate: ExamDate,
-            StartTime: sTimeStr,
-            FinishTime: fTimeStr,
             ExamTarget: ExamTarget,
             ExamComponent: ExamComponent,
             SizePrecisionLevel: SizePrecisionLevel,
-            ExamTeacher: ExamTeacher
+            Creator: creator
         });
         result = {
             code: ErrCode.SUCCESS,
@@ -171,6 +199,35 @@ router.get('/target', async (req, res, next) => {
         next(error)
     }
 })
+
+/**
+ * 获取当前教师未创建完成的考核继续
+ */
+router.get('/pending', async (req, res, next) => {
+    const ExamComponent = Number.parseInt(req.query.ExamComponent);
+    if (isNaN(ExamComponent)) {
+        return res.json({
+            code: 1,
+            msg: `无效的组件id: ${req.query.ExamComponent}`,
+            data: null
+        })
+    }
+    const exam = await models.Exam.findOne({
+        where: {
+            Status: {
+                [Op.ne]: 3,
+            },
+            Creator: req.info.Id,
+            ExamComponent: ExamComponent,
+        }
+    });
+    return res.json({
+        code: 0,
+        msg: `success`,
+        data: exam ? exam.toJSON() : null
+    })
+})
+
 /**
  * 按id查询exam，其他精确的get方法的请求请放在这个之前
  */
@@ -188,17 +245,17 @@ router.get('/:Id', async (req, res, next) => {
         }
 
         const exam = await models.Exam.findByPk(Id);
-        let ret = { ...exam.toJSON(), Class: '' }; //下发班级初始化为空
-        if (exam && exam.Class !== 0) {
-            const cls = await models.Class.findByPk(exam.Class);
-            if (cls) {
-                ret.Class = `${cls.Grade}级${cls.Class}班`;
-            }
-        }
+        // let ret = { ...exam.toJSON() }; //下发班级初始化为空
+        // if (exam && exam.Class !== 0) {
+        //     const cls = await models.Class.findByPk(exam.Class);
+        //     if (cls) {
+        //         ret.Class = `${cls.Grade}级${cls.Class}班`;
+        //     }
+        // }
         const result = {
-            code: ErrCode.SUCCESS,
+            code: 0,
             msg: 'success',
-            data: ret
+            data: exam.toJSON()
         }
         return res.status(200).json(result);
     } catch (err) {
@@ -342,11 +399,12 @@ router.post('/criteria', async (req, res, next) => {
                 UnDeclaredChamferTotalVal: UnDeclaredChamferTotalVal
             })
         }
-
+        //考核标准保存成功后，更新考核创建状态；
+        await exam.update({ Status: 2, Data: { ...exam.Data, "criterias": req.body } });
         const ret = {
             code: ErrCode.SUCCESS,
             msg: `success`,
-            data: null
+            data: exam.toJSON()
         }
         return res.status(200).json(ret);
     }
@@ -370,7 +428,7 @@ router.post('/scores', async (req, res, next) => {
             return res.status(404).json(result);
         }
         const { scores } = req.body;
-        await exam.update({ Data: { ...exam.Data, "scores": scores } });
+        await exam.update({ Status: 3, Data: { ...exam.Data, "scores": scores } });
         const ret = {
             code: ErrCode.SUCCESS,
             msg: `success`,
@@ -420,6 +478,7 @@ router.patch('/:examId/size/precision', async (req, res, next) => {
         }
         const { data } = req.body;
         if (data.length === 0) {
+            await exam.update({ Status: 1 });
             return res.json({ code: 0, msg: `success`, data: [] })
         }
 
@@ -437,7 +496,7 @@ router.patch('/:examId/size/precision', async (req, res, next) => {
         if (invalidSizes.length > 0) {
             return res.json({ code: 1, msg: `请求中存在与考核不相关的组件尺寸id:${invalidSizes.map(item => item.Id)}`, data: null })
         }
-        await exam.update({ Data: { ...exam.Data, precision: data } })
+        await exam.update({ Status: 1, Data: { ...exam.Data, precision: data } })
         return res.json({ code: 0, msg: `success`, data: exam.toJSON() });
     } catch (error) {
         next(error)

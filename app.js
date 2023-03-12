@@ -13,9 +13,10 @@ const student_router = require('./router/student');
 const score_router = require('./router/score');
 const admin_router = require('./router/admin');
 const tool_router = require('./router/tool');
+const teacher_router = require('./router/teacher');
 const { jwtAuth } = require('./utils/jwt');
 const ErrCode = require('./errcode');
-const { TeacherRoleRequired, AdminRoleRequired,FillInfoFromReq } = require('./utils/common');
+const { TeacherRoleRequired, AdminRoleRequired, FillInfoFromReq } = require('./utils/common');
 
 app.use(express.static(path.join(__dirname, './public/')));//静态资源存放地址
 app.use(cors());
@@ -47,7 +48,8 @@ app.use('/size', TeacherRoleRequired, component_size_router);
 app.use('/exam', TeacherRoleRequired, exam_router);
 app.use('/student', TeacherRoleRequired, student_router);
 app.use('/score', score_router);
-app.use('/tool',TeacherRoleRequired,  tool_router);
+app.use('/tool', TeacherRoleRequired, tool_router);
+app.use('/teacher', TeacherRoleRequired, teacher_router);
 
 app.use((req, res, next) => {
   res.status(404).json({ msg: '404 Not Found.' })

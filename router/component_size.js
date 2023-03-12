@@ -63,6 +63,9 @@ router.get('/', async (req, res, next) => {
     }
 });
 
+/**
+ * 新建尺寸记录
+ */
 router.post('/', async (req, res, next) => {
     try {
         //路径中的参数通过req.params.xxx来获取,注意类型转换
@@ -86,7 +89,7 @@ router.post('/', async (req, res, next) => {
             }
             return res.status(200).json(result);
         }
-        if (FirstType === ElementFirstType.SizedElement && (!SecondType || !BaseSize)) {
+        if (FirstType === ElementFirstType.SizedElement && (SecondType === null || SecondType === undefined || BaseSize === null || BaseSize === undefined)) {
             result = {
                 code: ErrCode.ERR_INVALID_PARAMS,
                 msg: `无效数据：尺寸类型或基准值缺失`
@@ -127,6 +130,52 @@ router.post('/', async (req, res, next) => {
         next(err)
     }
 })
+
+router.patch('/diameter', async (req, res, next) => {
+    try {
+        const IdType = req.body.IdType;
+        const ids = IdType.map(item => item.id);
+        if (ids.length === 0) {
+            return res.json({
+                code: 0,
+                msg: `success`,
+                data: []
+            })
+        }
+        const sizes = await models.ComponentSize.findAll({
+            where: {
+                id: ids
+            }
+        });
+        if (!sizes || sizes.length !== ids.length) {
+            return res.json({
+                code: 1,
+                msg: `存在无效的尺寸id，请检查。`,
+                data: null
+            })
+        }
+        await Promise.all(sizes.map(async size => {
+            const entity = IdType.filter(item => item.id === size.Id);
+            if (entity.length > 0 && [1, 2].includes(entity[0].type)) {
+                await size.update({ DiameterType: entity[0].type })
+            }
+        }))
+        const result = await models.ComponentSize.findAll({
+            where: {
+                id: ids
+            }
+        });
+        return res.json({
+            code: 0,
+            msg: `success`,
+            data: result.map(item => item.toJSON())
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+
 /**
  * 获取当前表中尺寸记录总数 用于前端分页
  */
