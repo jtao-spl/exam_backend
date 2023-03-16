@@ -62,7 +62,47 @@ router.get('/grade', async (req, res, next) => {
         next(error)
     }
 })
+/**
+ * 获取审核列表
+ */
+router.get('/exam/share', async (req, res, next) => {
+    try {
 
+        const page = Number.parseInt(req.query.page);
+        const limit = Number.parseInt(req.query.limit);
+        const status = Number.parseInt(req.query.status);
+        if (isNaN(page) || isNaN(limit)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的参数: page:${req.query.page}, limit: ${req.query.limit}`,
+                data: null
+            })
+        }
+        let condition = {}
+        if (!isNaN(status) && status !==0) { //传0表示全部
+            condition = { ...condition, Status: status }
+        }
+
+        const items = await models.ExamShare.findAll({
+            order: [["Id", "DESC"]],
+            offset: page > 0 ? (page - 1) * limit : 0,
+            limit: limit,
+            where: condition
+        });
+        const total = await models.ExamShare.count({ where: condition });
+        const result = {
+            code: ErrCode.SUCCESS,
+            msg: 'success',
+            data: items.map(item => item.toJSON()),
+            page: page,
+            limit: Math.min(limit, items.length),
+            total: total,
+        }
+        return res.status(200).json(result);
+    } catch (err) {
+        next(err)
+    }
+});
 /**
  * 查询单个年级详情
  */
@@ -339,6 +379,52 @@ router.patch('/students', async (req, res, next) => {
         students.map(async stu => await stu.update({ Class: Class }));
         return res.json({
             code: 0, msg: `sucecss`, data: students.map(stu => stu.toJSON())
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+/**
+ * 处理考卷共享审核
+ */
+router.patch('/exam/audit', async (req, res, next) => {
+    try {
+        const { examId, status } = req.body;
+        if (isNaN(examId) || isNaN(status) || ![1, 3].includes(status)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的请求参数：examId: ${examId}, status: ${status}`,
+                data: null
+            })
+        }
+        const auditRecord = await models.ExamShare.findOne({
+            where: {
+                ExamId: examId,
+                Status: 2
+            }
+        });
+        if (!auditRecord) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `考核${examId}当前不处于待审核状态`,
+                data: null
+            })
+        }
+        const exam = await models.Exam.findByPk(examId);
+        if (!exam) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `未找到考核：${examId}`,
+                data: null
+            })
+        }
+        await auditRecord.update({ Status: status });
+        await exam.update({ Shared: status });
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: exam.toJSON()
         })
     } catch (error) {
         next(error)

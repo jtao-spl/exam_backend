@@ -14,7 +14,7 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: -1,
         },
-        TeacherId: {
+        TeacherPhone: {
             type: DataTypes.STRING(20),
             allowNull: false,
             defaultValue: '',

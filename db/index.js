@@ -20,6 +20,7 @@ const modelDefiners = [
     require('./models/tool'),
     require('./models/exam_deliver'),
     require('./models/group'),
+    require('./models/exam_share'),
 
 ]
 

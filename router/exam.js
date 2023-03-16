@@ -3,7 +3,7 @@ const router = express.Router();
 const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component');
-const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
+const { getTokenFromReq, getCachedDataInfo, AdminRoleRequired } = require('../utils/common');
 const Decimal = require('decimal');
 const { Op } = require("sequelize");
 
@@ -72,7 +72,7 @@ router.get('/', async (req, res, next) => {
             })
         }
         if (IncludeShared) {
-            condition = {[Op.or]: [condition, { Shared: 1 }]}
+            condition = { [Op.or]: [condition, { Shared: 1 }] }
         }
         const exams = await models.Exam.findAll({
             order: [["Id", "DESC"]],
@@ -181,6 +181,24 @@ router.get('/criteria', async (req, res, next) => {
         data: criterias.map(criteria => criteria.toJSON())
     }
     return res.json(result);
+})
+/**
+ * 指定id查询
+ */
+router.get('/batch', async (req, res, next) => {
+    try {
+        const { ids } = req.query;
+        const exams = await models.Exam.findAll({
+            where: { id: ids, Deleted: 0 }
+        });
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: exams ? exams.map(exam => exam.toJSON()) : [],
+        })
+    } catch (error) {
+        next(error)
+    }
 })
 
 /**
@@ -462,7 +480,53 @@ router.post('/target', async (req, res, next) => {
         next(err)
     }
 })
-
+router.post('/:id/audit', async (req, res, next) => {
+    try {
+        const examId = req.params.id;
+        if (isNaN(examId)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考卷id:${req.params.id}`,
+                data: null
+            })
+        }
+        const exam = await models.Exam.findByPk(examId);
+        if (!exam) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未查找到考卷:${req.params.id}`,
+                data: null
+            })
+        }
+        if (Number.parseInt(exam.Creator) !== req.info.Id) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `当前登录用户非考卷创建人，无法发起申请`,
+                data: null
+            })
+        }
+        if (exam.Shared !== 0) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `当前考核状态非自见，无法重复发起申请`,
+                data: null
+            })
+        }
+        const result = await models.ExamShare.create({
+            ExamId: examId,
+            TeacherPhone: req.info.Id,
+            Status: 2
+        });
+        await exam.update({ Shared: 2 })
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: result.toJSON()
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 /**
  * 保存自定义的尺寸偏差数据
  */

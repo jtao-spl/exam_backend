@@ -40,7 +40,7 @@ module.exports = (sequelize) => {
             defaultValue: 0,
         },
         Shared: {
-            type:DataTypes.BOOLEAN,
+            type:DataTypes.TINYINT,
             allowNull:false,
             defaultValue: 0,
         },
