@@ -14,6 +14,16 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: -1,
         },
+        ExamName:{
+            type: DataTypes.STRING(100),
+            allowNull:false,
+            defaultValue: ''
+        },
+        ExamType: {
+            type: DataTypes.TINYINT,
+            allowNull: false,
+            defaultValue:0,
+        },
         TeacherPhone: {
             type: DataTypes.STRING(20),
             allowNull: false,
@@ -44,10 +54,10 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0,
         },
-        Group:{
-            type: DataTypes.TINYINT,
+        GroupName:{
+            type: DataTypes.STRING(2),
             allowNull: false,
-            defaultValue: 0,
+            defaultValue: '',
         },
         Status: {
             type: DataTypes.TINYINT,

@@ -21,7 +21,8 @@ const modelDefiners = [
     require('./models/exam_deliver'),
     require('./models/group'),
     require('./models/exam_share'),
-
+    require('./models/exam_deliver_detail'),
+    
 ]
 
 for (const modelDefiner of modelDefiners){

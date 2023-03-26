@@ -6,7 +6,7 @@ const ErrCode = require('../errcode');
 
 
 /**
- * 保存成绩
+ * 保存成绩 DEPRECATED
  */
 router.post('/', async (req, res, next) => {
     try {
@@ -33,11 +33,11 @@ router.post('/', async (req, res, next) => {
         if (info.Role === 3 && !info.Id) {
             return res.json({ code: ErrCode.ERR_BAD_CREDENTIAL, msg: `系统异常，查询学生缓存信息失败，请重新登录`, data: null })
         }
-        if(info.Role === 2 && !StudentId){
+        if (info.Role === 2 && !StudentId) {
             return res.json({ code: ErrCode.ERR_INVALID_PARAMS, msg: `系统异常，保存复测数据时请求中未指定学生id`, data: null })
         }
         let studentId = StudentId;
-        if(info.Role === 3){
+        if (info.Role === 3) {
             studentId = info.Id
         }
         const record = await models.Score.findOne({ where: { StudentId: studentId, ExamId: ExamId } });
@@ -96,13 +96,13 @@ router.get('/issubmitted', async (req, res, next) => {
         //     return res.json({ code: ErrCode.ERR_BAD_CREDENTIAL, msg: `登录信息已失效，请重新登录`, data: null })
         // }
         // const info = JSON.parse(data);
-        
+
         //自定义中间件注入
         const info = req.info;
         if (info.Role === 2) {
             return res.json({ code: ErrCode.ERR_BAD_CREDENTIAL, msg: `当前角色非学生`, data: null })
         }
-        const record = await models.Score.findOne({ where:{ ExamId: ExamId, StudentId: info.Id }});
+        const record = await models.Score.findOne({ where: { ExamId: ExamId, StudentId: info.Id } });
         let isSubmitted = false
         if (record) {
             isSubmitted = true
@@ -194,6 +194,56 @@ router.get('/', async (req, res, next) => {
             return res.json({ code: 0, msg: `success`, data: record.toJSON() })
         }
         return res.json({ code: 0, msg: `success`, data: null })
+    } catch (error) {
+        next(error)
+    }
+})
+
+/**
+ * 提交成绩数据
+ */
+router.patch('/deliver/detail/:id', async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核下发id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const detail = await models.ExamDeliverDetail.findByPk(id);
+        if (!detail) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未找到考核下发id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const { data, totalScore } = req.body;
+        if (detail.StudentId === req.info.Id) {
+            await detail.update({ SelfData: data, SelfScore: totalScore, Status: 1 });
+        }
+        else if (req.info.Role === 3) {
+            await detail.update({ GroupData: data, GroupScore: totalScore, GroupId: req.info.Id, Status: 2 });
+        } else {
+            const deliver = await models.ExamDeliver.findByPk(detail.DeliverId);
+            if (!deliver || deliver.TeacherPhone !== String(req.info.Id)) {
+                return res.json({
+                    code: ErrCode.ERR_UNAUTHENTICATED,
+                    msg: `非本人发布的考核无权限填写复测`,
+                    data: null
+                })
+            }
+            if (req.info.Role === 2) {
+                await detail.update({ FinalData: data, FinalScore: totalScore, Status: 3 });
+            }
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: detail.toJSON()
+        })
     } catch (error) {
         next(error)
     }

@@ -245,6 +245,155 @@ router.get('/pending', async (req, res, next) => {
         data: exam ? exam.toJSON() : null
     })
 })
+/**
+ * 获取考核列表
+ */
+router.get('/deliver', async (req, res, next) => {
+    try {
+        const page = Number.parseInt(req.query.page);
+        const limit = Number.parseInt(req.query.limit);
+        // const ExamComponent = Number.parseInt(req.query.ExamComponent);
+        // const IncludeShared = ['true', '1'].includes(req.query.IncludeShared) ? 1 : 0;
+        const Status = req.query.Status;
+        let condition = { Deleted: false }
+        // if (ExamComponent !== 0) {
+        //     condition = { ExamComponent: ExamComponent, ...condition }
+        // }
+        if (Status) {
+            condition = { Status: Status, ...condition }
+        }
+
+        if (req.info.Role === 2) {
+            const { Id } = req.info;
+            condition = { ...condition, TeacherPhone: Id }
+        }
+        if (req.info.Role === 3) {
+            return res.json({
+                code: 1,
+                msg: `学生无权查询考核列表`,
+                data: null
+            })
+        }
+        // if (IncludeShared) {
+        //     condition = { [Op.or]: [condition, { Shared: 1 }] }
+        // }
+        const delivers = await models.ExamDeliver.findAll({
+            order: [["Id", "DESC"]],
+            offset: page > 0 ? (page - 1) * limit : 0,
+            limit: limit,
+            where: condition
+        });
+        const total = await models.ExamDeliver.count({ where: condition });
+        const result = {
+            code: ErrCode.SUCCESS,
+            msg: 'success',
+            data: delivers.map(deliver => deliver.toJSON()),
+            page: page,
+            limit: Math.min(limit, delivers.length),
+            total: total,
+        }
+        return res.status(200).json(result);
+    } catch (err) {
+        next(err)
+    }
+});
+/**
+ * 查询考核提交进度
+ */
+router.get(`/deliver/progress`, async (req, res, next) => {
+    try {
+        const ids = req.query.ids.map(id => Number.parseInt(id));
+        if (ids.some(id => isNaN(id))) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `请求中存在无效的id: ${req.query.ids}`,
+                data: null,
+            })
+        }
+        const delivers = await models.ExamDeliver.findAll({
+            where: { Id: ids }
+        })
+        const result = await Promise.all(ids.map(async id => {
+            const { count, rows } = await models.ExamDeliverDetail.findAndCountAll({
+                where: { Deleted: 0, DeliverId: id }
+            });
+            if (count === 0 || !rows || rows.length === 0) return { id, progress: 0 }
+            const finishedDetails = rows.filter(detail => {
+                const deliver = delivers.filter(d => d.Id === detail.DeliverId);
+                if (deliver.length === 0) return detail.Status !== 0;
+                if (deliver.ExamType === 0) return detail.Status >= 2;
+                return detail.Status !== 0
+            })
+            return { id, progress: Math.floor(finishedDetails.length * 100 / count) }
+        }));
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: result,
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+/**
+ * 指定id查询deliver详情
+ */
+router.get(`/deliver/:id`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的id:${req.params.id}`,
+                data: null
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未找到考核信息:${req.params.id}`,
+                data: null
+            })
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: deliver.toJSON()
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.get(`/detail/:id`, async(req, res,next)=>{
+    try {
+        const id= req.params.id;
+        if(isNaN(id)){
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg:`无效的detail id: ${req.params.id}`,
+                data: null,
+            })
+        }
+        const detail = await models.ExamDeliverDetail.findByPk(id);
+        if(!detail){
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg:`未找到detail id: ${req.params.id}`,
+                data: null
+            })
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data:detail.toJSON(), 
+        })
+
+    } catch (error) {
+        next(error)
+    }
+})
 
 /**
  * 按id查询exam，其他精确的get方法的请求请放在这个之前
@@ -281,6 +430,9 @@ router.get('/:Id', async (req, res, next) => {
     }
 });
 
+/**
+ * 更新考卷的状态，班级信息已重构后不支持
+ */
 router.patch('/:Id', async (req, res, next) => {
     try {
         const ExamId = Number.parseInt(req.params.Id);
@@ -331,6 +483,46 @@ router.patch('/:Id', async (req, res, next) => {
 
     } catch (err) {
         next(err)
+    }
+})
+
+/**
+ * 更新考核的状态
+ */
+router.patch('/deliver/:id', async (req, res, next) => {
+    try {
+        const id = Number.parseInt(req.params.id);
+        const status = req.body.status;
+        if (isNaN(status)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的状态值 ${status}`,
+                data: null
+            })
+        }
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核id ${req.params.id}`,
+                data: null
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `不存在的考核id ${id}`,
+                data: null
+            })
+        }
+        await deliver.update({ Status: status })
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: deliver.toJSON()
+        })
+    } catch (error) {
+        next(error)
     }
 })
 
@@ -480,6 +672,9 @@ router.post('/target', async (req, res, next) => {
         next(err)
     }
 })
+/**
+ * 发起考卷共享请求
+ */
 router.post('/:id/audit', async (req, res, next) => {
     try {
         const examId = req.params.id;
@@ -527,6 +722,116 @@ router.post('/:id/audit', async (req, res, next) => {
         next(error)
     }
 })
+
+/**
+ * 下发考卷
+ */
+router.post('/:id/deliver', async (req, res, next) => {
+    try {
+        const ExamId = Number.parseInt(req.params.id);
+        if (isNaN(ExamId)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考卷id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const exam = await models.Exam.findByPk(ExamId);
+        if (!exam) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考卷: ${req.params.id}`,
+                data: null
+            })
+        }
+
+        const { ExamName, ExamType, ExamDate, StartTime, FinishTime, Grade, Major, Class, Group } = req.body;
+        const grade = await models.Grade.findOne({
+            where: {
+                Grade: Grade,
+                Major: Major,
+                Deleted: 0,
+            }
+        })
+        if (!grade) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的年级专业: ${Grade}-${Major}`,
+                data: null
+            })
+        }
+        console.log(`typeof ExamDate: ${typeof ExamDate}`);
+        const eDate = new Date(ExamDate.substring(0, 10));
+        console.log(`eDate: ${eDate}`)
+        const sTime = new Date(StartTime);
+
+        const sTimeStr = `${sTime.getHours()}:${sTime.getMinutes()}`;
+
+        const fTime = new Date(FinishTime);
+        const fTimeStr = `${fTime.getHours()}:${fTime.getMinutes()}`;
+        console.log(`sTimeStr: ${sTimeStr}`)
+
+        console.log(`fTimeStr: ${fTimeStr}`)
+        const record = await models.ExamDeliver.create({
+            ExamId: ExamId,
+            ExamName: ExamName,
+            ExamType: ExamType,
+            TeacherPhone: req.info.Id,
+            ExamDate: ExamDate,
+            StartTime: sTimeStr,
+            FinishTime: fTimeStr,
+            GradeId: grade.Id,
+            Class: Class,
+            GroupName: Group === 'A' ? 'A' : Group === 'B' ? 'B' : '',
+        });
+        if (!record) {
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `创建考核失败：DB写入异常`,
+                data: null
+            })
+        }
+        //TODO: 此处默认为仅支持单选
+        let studentIds;
+        if (['A', 'B'].includes(Group)) { //指定了具体分组时
+            groupItem = await models.Group.findOne({
+                where: {
+                    GradeId: grade.Id,
+                    Class: Class,
+                    TeacherPhone: req.info.Id,
+                    GroupName: Group,
+                    Deleted: 0,
+                }
+            });
+            if (!groupItem) {
+                return res.json({
+                    code: ErrCode.ERR_NOT_FOUND,
+                    msg: `未找到教师${req.info.Name}对${Grade}${Major}${Class}班的分组信息`,
+                    data: null
+                })
+            }
+            studentIds = groupItem.StudentIds
+        } else { //未指定分组
+            let condition = { //至少指定了年级专业
+                GradeId: grade.Id,
+                Deleted: 0
+            }
+            if (Class !== undefined) condition = { ...condition, Class: Class } //还指定班级时
+            const students = await models.Student.findAll({
+                where: condition
+            })
+            studentIds = students.map(student => student.StudentId)
+        }
+        const details = studentIds.map(stuId => ({ DeliverId: record.Id, ExamId: record.ExamId, StudentId: stuId }));
+        const result = await models.ExamDeliverDetail.bulkCreate(details);
+        return res.json({
+            code: 0, msg: `success`, data: result ? result.map(rst => rst.toJSON()) : null
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
 /**
  * 保存自定义的尺寸偏差数据
  */

@@ -5,7 +5,6 @@ const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
 const ErrCode = require('../errcode');
 const { createToken } = require('../utils/jwt');
 const redisClient = require('../db/redis');
-const student = require('../db/models/student');
 
 router.post('/login', async (req, res, next) => {
   const { id, password } = req.body;
@@ -41,7 +40,7 @@ router.post('/login', async (req, res, next) => {
     if(auth.Role === 3){
       entity = await models.Student.findOne({where: {StudentId: Id}});
       if(entity){
-        cacheData = { ...cacheData, GradeId: student.GradeId, Class: student.Class, Name: entity.Name };
+        cacheData = { ...cacheData, GradeId: entity.GradeId, Class: entity.Class, Name: entity.Name };
       }
     }
 
