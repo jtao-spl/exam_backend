@@ -335,6 +335,144 @@ router.get(`/deliver/progress`, async (req, res, next) => {
         next(error)
     }
 })
+
+//获取考核统计概览
+router.get(`/deliver/:id/stat`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未查询到考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        if (deliver.Status !== 3) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `考核id: ${req.params.id}尚未完成复测，无法获取统计信息`,
+                data: null
+            })
+        }
+        const stat = await models.ExamDeliverStat.findOne({
+            where: {
+                DeliverId: id,
+                Deleted: 0
+            }
+        });
+        if (!stat) {
+            return res.json({
+                code: ErrCode.ERR_NOT_FOUND,
+                msg: `考核id: ${req.params.id}统计信息自动生成失败，请联系管理员处理。`,
+                data: null
+            })
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `SUCCESS`,
+            data: stat.toJSON()
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+//获取考核的成绩分布
+router.get(`/deliver/:id/dist`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未查询到考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        if (deliver.Status !== 3) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `考核id: ${req.params.id}尚未完成复测，无法获取成绩分布`,
+                data: null
+            })
+        }
+        const stat = await models.ExamDeliverDist.findOne({
+            where: {
+                DeliverId: id,
+                Deleted: 0
+            }
+        });
+        if (!stat) {
+            return res.json({
+                code: ErrCode.ERR_NOT_FOUND,
+                msg: `考核id: ${req.params.id}统计信息自动生成失败，请联系管理员处理。`,
+                data: null
+            })
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `SUCCESS`,
+            data: stat.toJSON()
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+//获取考核的具体项评分
+router.get(`/deliver/:id/scores`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未查询到考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        if (deliver.Status !== 3) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `考核id: ${req.params.id}尚未完成复测，无法获取成绩分布`,
+                data: null
+            })
+        }
+        const details = await models.ExamDeliverSizeStat.findAll({
+            where: {
+                DeliverId: id,
+                Deleted: 0
+            }
+        })
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `SUCCESS`,
+            data: details.map(detail => detail.toJSON()),
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 /**
  * 指定id查询deliver详情
  */
@@ -366,28 +504,28 @@ router.get(`/deliver/:id`, async (req, res, next) => {
     }
 })
 
-router.get(`/detail/:id`, async(req, res,next)=>{
+router.get(`/detail/:id`, async (req, res, next) => {
     try {
-        const id= req.params.id;
-        if(isNaN(id)){
+        const id = req.params.id;
+        if (isNaN(id)) {
             return res.json({
                 code: ErrCode.ERR_INVALID_PARAMS,
-                msg:`无效的detail id: ${req.params.id}`,
+                msg: `无效的detail id: ${req.params.id}`,
                 data: null,
             })
         }
         const detail = await models.ExamDeliverDetail.findByPk(id);
-        if(!detail){
+        if (!detail) {
             return res.json({
                 code: ErrCode.ERR_INVALID_PARAMS,
-                msg:`未找到detail id: ${req.params.id}`,
+                msg: `未找到detail id: ${req.params.id}`,
                 data: null
             })
         }
         return res.json({
             code: ErrCode.SUCCESS,
             msg: `success`,
-            data:detail.toJSON(), 
+            data: detail.toJSON(),
         })
 
     } catch (error) {
@@ -670,6 +808,155 @@ router.post('/target', async (req, res, next) => {
     }
     catch (err) {
         next(err)
+    }
+})
+
+/**
+ * 成绩归档
+ */
+router.post(`/deliver/:id/finish`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `无效的考核id: ${req.params.id}`,
+                data: null,
+            })
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.json({
+                code: ErrCode.ERR_INVALID_PARAMS,
+                msg: `未查询到考核id: ${req.params.id}`,
+                data: null
+            })
+        }
+        if (deliver.Status !== 2) {
+            return res.json({
+                code: ErrCode.ERR_INCONSISTENT,
+                msg: `考核id: ${req.params.id}不处于收卷复测中，无法归档。`,
+                data: null
+            })
+        }
+
+        //归档，第一步： 先统计概览信息 count为参考总人数，totalCount为实际应参考总人数。
+        const { rows, count } = await models.ExamDeliverDetail.findAndCountAll({
+            where: {
+                DeliverId: id,
+                Status: 3,
+                Deleted: 0
+            }
+        });
+        const totalCount = await models.ExamDeliverDetail.count({ where: { DeliverId: id, Deleted: 0 } });
+        const totalScore = rows.map(item => item.FinalScore).reduce((sum, value) => sum + value * 1.0, 0);
+        const AvgScore = Math.round(totalScore * 100 / totalCount);
+        const PassRate = Math.round(rows.filter(item => item.FinalScore >= 60).length * 100 / totalCount);
+        const ExclRate = Math.round(rows.filter(item => item.FinalScore >= 90).length * 100 / totalCount);
+        const LowRate = Math.round((rows.filter(item => item.FinalScore <= 30).length + totalCount - count) * 100 / totalCount);
+        const StandardDiff = 0; //TODO:
+        const general = await models.ExamDeliverStat.create({
+            DeliverId: id,
+            PartCnt: count,
+            AvgScore, PassRate, ExclRate, LowRate, StandardDiff
+        });
+        if (!general) {
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，保存考核统计失败。`,
+                data: null
+            })
+        }
+
+        //第二步：成绩分段统计
+        const ScoreLe30 = rows.filter(item => item.FinalScore < 30).length + totalCount - count;
+        const Score3040 = rows.filter(item => item.FinalScore >= 30 && item.FinalScore < 40).length;
+        const Score4050 = rows.filter(item => item.FinalScore >= 40 && item.FinalScore < 50).length;
+        const Score5060 = rows.filter(item => item.FinalScore >= 50 && item.FinalScore < 60).length;
+        const Score6070 = rows.filter(item => item.FinalScore >= 60 && item.FinalScore < 70).length;
+        const Score7080 = rows.filter(item => item.FinalScore >= 70 && item.FinalScore < 80).length;
+        const Score8090 = rows.filter(item => item.FinalScore >= 80 && item.FinalScore < 90).length;
+        const Score90100 = rows.filter(item => item.FinalScore >= 90 && item.FinalScore < 100).length;
+
+        const item_stat = await models.ExamDeliverDist.create({
+            DeliverId: id,
+            ScoreLe30, Score3040, Score4050, Score5060, Score6070, Score7080, Score8090, Score90100
+        })
+        if (!item_stat) {
+            await general.update({ Deleted: 1 })
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，保存分段统计失败。`,
+                data: null
+            })
+        }
+        //第三步，成绩数据打平保存
+        const exam = await models.Exam.findByPk(deliver.ExamId);
+        if (!exam) {
+            await general.update({ Deleted: 1 })
+            await item_stat.update({ Deleted: 1 })
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，关联的考卷丢失。`,
+                data: null
+            })
+        }
+        const TotalScores = exam.Data.scores;
+        const details = await models.ExamDeliverDetail.findAll({
+            where: {
+                DeliverId: id,
+                Deleted: 0,
+                FinalScore: { [Op.ne]: 0 }
+            }
+        });
+        if (!details) {
+            await general.update({ Deleted: 1 })
+            await item_stat.update({ Deleted: 1 })
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，查询考核项详情失败。`,
+                data: null
+            })
+        }
+        const FinalDatas = details.map(detail => detail.FinalData);
+        const data = TotalScores.map(sizeScorePaire => {
+            const SizeId = sizeScorePaire.SizeId;
+            const Total = sizeScorePaire.Score;
+            const currents = FinalDatas.map(arr => arr.filter(item=> item.sizeId === SizeId)).flat();
+            const ScoreAvg = currents.length > 0 ? Math.round(currents.reduce((prev, current) => prev + current.score, 0) * 100 / currents.length) : 0;
+            const ScoreRate = currents.length > 0 ? Math.round(currents.filter(item => item.score !== 0).length * 100 / currents.length) : 0;
+            return {
+                SizeId, Total, ScoreAvg, ScoreRate, DeliverId: id
+            }
+        })
+        const size_stats = await models.ExamDeliverSizeStat.bulkCreate(data);
+        if (!size_stats) {
+            await general.update({ Deleted: 1 })
+            await item_stat.update({ Deleted: 1 })
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，存储考核项详情失败。`,
+                data: null
+            })
+        }
+        const result = await deliver.update({ Status: 3 });
+        if (!result || result.Status !== 3) {
+            await general.update({ Deleted: 1 })
+            await item_stat.update({ Deleted: 1 })
+            await Promise.all(size_stats.map(async stat => stat.update({ Deleted: 1 })))
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败。`,
+                data: null
+            })
+        }
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: result.toJSON()
+        })
+    } catch (error) {
+        next(error)
     }
 })
 /**

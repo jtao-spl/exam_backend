@@ -22,7 +22,10 @@ const modelDefiners = [
     require('./models/group'),
     require('./models/exam_share'),
     require('./models/exam_deliver_detail'),
-    
+    require('./models/exam_deliver_stat'),
+    require('./models/exam_deliver_dist'),
+    require('./models/exam_deliver_size_stat'),
+
 ]
 
 for (const modelDefiner of modelDefiners){
