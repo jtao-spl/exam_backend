@@ -19,6 +19,11 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0,
         },
+        IsSecurity:{
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
         Total: {
             type: DataTypes.INTEGER,
             allowNull: false,

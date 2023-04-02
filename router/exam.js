@@ -254,13 +254,17 @@ router.get('/deliver', async (req, res, next) => {
         const limit = Number.parseInt(req.query.limit);
         // const ExamComponent = Number.parseInt(req.query.ExamComponent);
         // const IncludeShared = ['true', '1'].includes(req.query.IncludeShared) ? 1 : 0;
-        const Status = req.query.Status;
+        const archived = ['true', '1'].includes(req.query.archived);
         let condition = { Deleted: false }
         // if (ExamComponent !== 0) {
         //     condition = { ExamComponent: ExamComponent, ...condition }
         // }
-        if (Status) {
-            condition = { Status: Status, ...condition }
+        if (archived) {
+            condition = { Status: 3, ...condition }
+        } else {
+            condition = {
+                ...condition, Status: { [Op.ne]: 3 }
+            }
         }
 
         if (req.info.Role === 2) {
@@ -901,15 +905,27 @@ router.post(`/deliver/:id/finish`, async (req, res, next) => {
                 data: null
             })
         }
+        const sizes = await models.ComponentSize.findAll({
+            where: { ComponentId: exam.ExamComponent }
+        })
+        if (sizes.length === 0) {
+            await general.update({ Deleted: 1 })
+            await item_stat.update({ Deleted: 1 })
+            return res.json({
+                code: ErrCode.ERR_INTERNAL_SERVER_ERROR,
+                msg: `考核id: ${req.params.id}归档失败，关联的考卷尺寸数据丢失。`,
+                data: null
+            })
+        }
         const TotalScores = exam.Data.scores;
         const details = await models.ExamDeliverDetail.findAll({
             where: {
                 DeliverId: id,
                 Deleted: 0,
-                FinalScore: { [Op.ne]: 0 }
+                Status: 3
             }
         });
-        if (!details) {
+        if (details.length === 0) {
             await general.update({ Deleted: 1 })
             await item_stat.update({ Deleted: 1 })
             return res.json({
@@ -921,12 +937,14 @@ router.post(`/deliver/:id/finish`, async (req, res, next) => {
         const FinalDatas = details.map(detail => detail.FinalData);
         const data = TotalScores.map(sizeScorePaire => {
             const SizeId = sizeScorePaire.SizeId;
+            const size = sizes.filter(sz => sz.Id === SizeId);
+            const IsSecurity = size.length > 0 && size[0].FirstType === 4;
             const Total = sizeScorePaire.Score;
-            const currents = FinalDatas.map(arr => arr.filter(item=> item.sizeId === SizeId)).flat();
+            const currents = FinalDatas.map(arr => arr.filter(item => item.sizeId === SizeId)).flat();
             const ScoreAvg = currents.length > 0 ? Math.round(currents.reduce((prev, current) => prev + current.score, 0) * 100 / currents.length) : 0;
             const ScoreRate = currents.length > 0 ? Math.round(currents.filter(item => item.score !== 0).length * 100 / currents.length) : 0;
             return {
-                SizeId, Total, ScoreAvg, ScoreRate, DeliverId: id
+                SizeId, Total, ScoreAvg, ScoreRate, DeliverId: id, IsSecurity
             }
         })
         const size_stats = await models.ExamDeliverSizeStat.bulkCreate(data);
