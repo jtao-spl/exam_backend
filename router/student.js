@@ -3,6 +3,9 @@ const router = express.Router();
 const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { Op } = require("sequelize");
+const { exportStudentScore } = require('../utils/excel');
+const { getName, getBaseSize, getUpSize, getBottomSize, getTotalScore, getCriteriaDesc, getToolName } = require('../utils/size');
+
 /**
  * 上传学生表：
  * 1. 年级班级落表
@@ -119,25 +122,25 @@ router.get('/', async (req, res, next) => {
 })
 
 /**
- * 学生侧查询可见的考核列表
+ * 学生侧查询可见的考核列表,一旦下发，不论何种状态均能查看到
  */
 router.get('/deliver/list', async (req, res, next) => {
     try {
         const page = Number.parseInt(req.query.page);
         const limit = Number.parseInt(req.query.limit);
-        const status = Number.parseInt(req.query.status);
+        // const status = Number.parseInt(req.query.status);
         let condition = { Deleted: 0 }
 
-        if (isNaN(page) || isNaN(limit) || isNaN(status) || status === 0) {
+        if (isNaN(page) || isNaN(limit)) {
             return res.json({
                 code: ErrCode.ERR_INVALID_PARAMS,
-                msg: `无效的请求参数：page: ${req.query.page}, limit: ${req.query.limit}, status: ${req.query.status}`,
+                msg: `无效的请求参数：page: ${req.query.page}, limit: ${req.query.limit}`,
                 data: null
             })
         }
-        if (status) {
-            condition = { ...condition, Status: status }
-        }
+        // if (status) {
+        //     condition = { ...condition, Status: status }
+        // }
         //TODO： 全年级发放的  应能展示。
         //班级维度发放的，应能展示，
         //按组发放的，应能展示。
@@ -194,6 +197,75 @@ router.get('/deliver/list', async (req, res, next) => {
             limit: Math.min(limit, delivers.length),
             total: total,
         })
+    } catch (error) {
+        next(error)
+    }
+})
+
+/**
+ * 学生下载成绩单
+ */
+router.get(`/deliver/:id/download`, async (req, res, next) => {
+    try {
+        console.log(`此处构造excelbuff`);
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.status(404).end(`无效id:${id}`);
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.status(404).end('未找到deliver');
+        }
+        const teacherModel = await models.Teacher.findOne({ where: { Phone: deliver.TeacherPhone } });
+        const Grade = await models.Grade.findByPk(deliver.GradeId);
+        const detail = await models.ExamDeliverDetail.findOne({ where: { DeliverId: id, StudentId: req.info.Id, Deleted: 0 } })
+        const target = deliver.ExamName;
+        const exam_date = deliver.ExamDate;
+        const teacher = teacherModel ? teacherModel.Name : '';
+        const major = Grade ? Grade.Major : '';
+        const self_score = detail ? detail.SelfScore : 0;
+        const group_score = detail ? detail.GroupScore : 0;
+        const final_score = detail ? detail.FinalScore : 0;
+        const exam = await models.Exam.findByPk(deliver.ExamId);
+        if (!exam) {
+            return res.status(404).end('未找到exam');
+        }
+        const component = await models.Component.findByPk(exam.ExamComponent);
+        if (!component) return res.status(404).end('未找到component');
+        const sizes = await models.ComponentSize.findAll({ where: { ComponentId: component.Id, Deleted: 0 } });
+        if (sizes.length === 0) return res.status(404).end('未找到尺寸数据');
+        const criterias = await models.ExamCriteria.findAll({ where: { CriteriaId: exam.CriteriaId, Deleted: 0 } })
+        if (criterias.length === 0) return res.status(404).end('未找到考核标准');
+        const tools = await models.Tool.findAll()
+        const content = sizes.map(size => {
+            const SelfData = detail.SelfData.filter(item => item.sizeId === size.Id);
+            const GroupData = detail.GroupData?.filter(item => item.sizeId === size.Id);
+            const FinalData = detail.FinalData.filter(item => item.sizeId === size.Id);
+            return {
+                name: getName(size),
+                baseSize: getBaseSize(size),
+                upSize: getUpSize(size),
+                bottomSize: getBottomSize(size),
+                totalScore: getTotalScore(size, exam),
+                CriteriaDesc: getCriteriaDesc(size, criterias),
+                toolName: getToolName(SelfData, tools),
+                selfSize: SelfData.length > 0 ? SelfData[0].value : '-',
+                selfScore: SelfData.length > 0 ? SelfData[0].score : '-',
+                groupSize: GroupData && GroupData.length > 0 ? GroupData[0].value : '-',
+                groupScore: GroupData && GroupData.length > 0 ? GroupData[0].score : '-',
+                finalSize: FinalData.length > 0 ? FinalData[0].value : '-',
+                finalScore: FinalData.length > 0 ? FinalData[0].score : '-',
+
+            }
+        })
+        const data = [
+            [{ target, exam_date, teacher, major, self_score, group_score, final_score }],
+            content,
+        ]
+        const buf = await exportStudentScore(data)
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats;charset=utf-8');
+        res.setHeader("Content-Disposition", "attachment; filename=" + 'test' + ".xlsx");
+        res.end(buf, 'binary');
     } catch (error) {
         next(error)
     }
