@@ -512,6 +512,28 @@ router.post('/group', async (req, res, next) => {
     }
 })
 
-
+/**
+ * 更新学生姓名
+ */
+router.patch('/:id', async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.json({ code: ErrCode.ERR_INVALID_PARAMS, msg: `无效的学号`, data: null })
+        }
+        const student = await models.Student.findOne({ where: { StudentId: id } })
+        if (!student) {
+            return res.json({ code: ErrCode.ERR_INVALID_PARAMS, msg: `系统中未查到学号: ${id}`, data: null })
+        }
+        const result = await student.update({ Name: req.body.Name });
+        return res.json({
+            code: ErrCode.SUCCESS,
+            msg: `success`,
+            data: result.toJSON()
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 
 module.exports = router

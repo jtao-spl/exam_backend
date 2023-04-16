@@ -3,10 +3,10 @@ const router = express.Router();
 const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component');
-const { getTokenFromReq, getCachedDataInfo, AdminRoleRequired } = require('../utils/common');
-const Decimal = require('decimal');
+const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
 const { Op } = require("sequelize");
-
+const xlsx = require("node-xlsx").default
+ 
 const ElementFirstType = {
     SizedElement: 0,
     GeometricalTolerance: 1,
@@ -477,6 +477,64 @@ router.get(`/deliver/:id/scores`, async (req, res, next) => {
         next(error)
     }
 })
+
+/**
+ * 教师下载得分详情
+ */
+router.get(`/deliver/:id/download`, async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        if (isNaN(id)) {
+            return res.status(404).end(`无效id:${id}`);
+        }
+        const deliver = await models.ExamDeliver.findByPk(id);
+        if (!deliver) {
+            return res.status(404).end('未找到deliver');
+        }
+        const details = await models.ExamDeliverDetail.findAll({ where: { DeliverId: id } })
+        const teacher = await models.Teacher.findOne({ where: { Phone: req.info.Id, Deleted: 0 } })
+        const size_stats = await models.ExamDeliverSizeStat.findAll({ where: { DeliverId: id } });
+        const Class = deliver.Class
+        const ExamDate = deliver.ExamDate;
+        const PublishTeacher = teacher?.Name;
+        // let ItemCount = 0
+        // const valids = details.filter(detail => detail.FinalScore !== null)
+        // if (valids.length > 0) {
+        //     ItemCount = valids[0].FinalData.length;
+        // }
+        const content = details.map((detail, idx) => {
+            if (detail.FinalScore === 0 || !detail.FinalData) return [`考生${idx}`]
+            const sortedItems = detail.FinalData.sort((a, b) => {return a.sizeId - b.sizeId});
+            return [`考生${idx}`, ...sortedItems.map(item => item.score), detail.FinalScore]
+        })
+        const sortedStats = size_stats.sort((a, b) => {return a.SizeId - b.SizeId})
+        const avgs = sortedStats.map(stat => stat.ScoreAvg /100)
+        const types = sortedStats.map((stat, idx) =>  stat.IsSecurity ? `安全文明${idx+1}` : `评分项${idx+1}`)
+        const data1 = [
+            ["实训考核班级成绩统计"],
+            ["考核班级", `${Class}`, "考核日期", `${ExamDate}`,"考核发布人", `${PublishTeacher}`,"", "考核图样设计"],
+            ["", ...types,"总分"],
+            ...content,
+            [],
+            ["平均分统计", ...avgs]
+        ]
+        const merge = {s: {c: 0, r: 0}, e: {c: 8, r: 0}}; // A1:H1
+        const sheetOptions = {'!merges': [
+            {s: {c: 0, r: 0}, e: {c: 8, r: 0}}, // A1:H1
+            // {s: {c: 2, r: 1}, e: {c: 3, r: 1}}, //C2： D2
+            // {s: {c: 6, r: 1}, e: {c: 8, r: 1}}, // G2: H2
+            // {s: {c: 12, r: 1}, e: {c: 14, r: 1}}, // G2: H2
+        ]};
+        const buffer = xlsx.build([{name: 'mySheetName', data: data1}], {sheetOptions}); // Returns a buffer
+        // const buf = await exportScoreDetail(data);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats;charset=utf-8');
+        res.setHeader("Content-Disposition", "attachment; filename=" + 'test' + ".xlsx");
+        res.end(buffer, 'binary');
+    } catch (error) {
+        next(error)
+    }
+})
+
 /**
  * 指定id查询deliver详情
  */
