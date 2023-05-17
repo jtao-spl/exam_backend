@@ -39,11 +39,11 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: '00:00',
         },
-        FinishTime: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
-            defaultValue: '00:00',
-        },
+        // FinishTime: {
+        //     type: DataTypes.STRING(20),
+        //     allowNull: false,
+        //     defaultValue: '00:00',
+        // },
         GradeId:{
             type: DataTypes.INTEGER,
             allowNull: false,

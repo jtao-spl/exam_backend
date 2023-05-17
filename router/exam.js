@@ -1108,7 +1108,7 @@ router.post('/:id/deliver', async (req, res, next) => {
             })
         }
 
-        const { ExamName, ExamType, ExamDate, StartTime, FinishTime, Grade, Major, Class, Group } = req.body;
+        const { ExamName, ExamType, ExamDate, StartTime, Grade, Major, Class, Group } = req.body;
         const grade = await models.Grade.findOne({
             where: {
                 Grade: Grade,
@@ -1130,11 +1130,7 @@ router.post('/:id/deliver', async (req, res, next) => {
 
         const sTimeStr = `${sTime.getHours()}:${sTime.getMinutes()}`;
 
-        const fTime = new Date(FinishTime);
-        const fTimeStr = `${fTime.getHours()}:${fTime.getMinutes()}`;
         console.log(`sTimeStr: ${sTimeStr}`)
-
-        console.log(`fTimeStr: ${fTimeStr}`)
         const record = await models.ExamDeliver.create({
             ExamId: ExamId,
             ExamName: ExamName,
@@ -1142,7 +1138,6 @@ router.post('/:id/deliver', async (req, res, next) => {
             TeacherPhone: req.info.Id,
             ExamDate: ExamDate,
             StartTime: sTimeStr,
-            FinishTime: fTimeStr,
             GradeId: grade.Id,
             Class: Class,
             GroupName: Group === 'A' ? 'A' : Group === 'B' ? 'B' : '',
