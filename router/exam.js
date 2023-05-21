@@ -4,6 +4,7 @@ const { models } = require('../db/index');
 const ErrCode = require('../errcode');
 const { getComponentCriteria } = require('../service/component');
 const { getTokenFromReq, getCachedDataInfo } = require('../utils/common');
+const {getStandardDiff} = require('../utils/math');
 const { Op } = require("sequelize");
 const xlsx = require("node-xlsx").default
  
@@ -915,11 +916,18 @@ router.post(`/deliver/:id/finish`, async (req, res, next) => {
         const AvgScore = Math.round(totalScore * 100 / totalCount);
         const PassRate = Math.round(rows.filter(item => item.FinalScore >= 60).length * 100 / totalCount);
         const ExclRate = Math.round(rows.filter(item => item.FinalScore >= 90).length * 100 / totalCount);
-        const LowRate = Math.round((rows.filter(item => item.FinalScore <= 30).length + totalCount - count) * 100 / totalCount);
-        const StandardDiff = 0; //TODO:
+        const LowRate = Math.round((rows.filter(item => item.FinalScore <= 50).length + totalCount - count) * 100 / totalCount);
+        const allRecord = await models.ExamDeliverDetail.findAll({
+            where: {
+                DeliverId: id,
+                Deleted: 0
+            }
+        })
+        const FinalScores = allRecord.map(item=>item.FinalScore)
+        const StandardDiff = getStandardDiff(totalCount, totalScore, FinalScores); //TODO:
         const general = await models.ExamDeliverStat.create({
             DeliverId: id,
-            PartCnt: count,
+            PartCnt: count, TotalCnt: totalCount,
             AvgScore, PassRate, ExclRate, LowRate, StandardDiff
         });
         if (!general) {

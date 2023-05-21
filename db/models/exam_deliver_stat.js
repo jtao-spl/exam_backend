@@ -19,6 +19,11 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0,
         },
+        TotalCnt: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        },
         AvgScore: {
             type: DataTypes.INTEGER,
             allowNull: false,
